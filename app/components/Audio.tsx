@@ -28,7 +28,7 @@ export default function VoiceInput({
 
     const recog = new SR();
     recog.lang = lang === "ja" ? "ja-JP" : "en-US";
-    recog.interimResults = false; // Add for better result handling
+    recog.interimResults = false;
 
     setListening(true);
     recog.start();
@@ -45,21 +45,26 @@ export default function VoiceInput({
   return (
     <button
       onClick={startListening}
+      disabled={listening}
       style={{
         padding: "10px 16px",
-        borderRadius: "12px", // Use CSS variables for theme compatibility
-        background: listening ? "var(--bg-mic-active)" : "var(--bg-button)",
-        color: "white",
+        borderRadius: "12px",
+        // Use global CSS variables: --color-mic-active and --bg-button
+        background: listening ? "var(--color-mic-active)" : "var(--bg-button)",
+        // Use text color from global CSS (assuming white is appropriate here, or define a new var)
+        color: listening ? "white" : "var(--color-button-text)",
         fontSize: "14px",
         fontWeight: 600,
         border: "none",
         display: "flex",
         alignItems: "center",
         gap: "8px",
-        cursor: "pointer",
+        cursor: listening ? "default" : "pointer",
+        transition: "background 0.2s",
+        flexShrink: 0,
       }}
     >
-            <FiMic />     {" "}
+      <FiMic size={18} />
       {listening
         ? lang === "ja"
           ? "録音中..."
@@ -67,7 +72,6 @@ export default function VoiceInput({
         : lang === "ja"
         ? "音声入力"
         : "Voice"}
-         {" "}
     </button>
   );
 }

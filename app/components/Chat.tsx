@@ -17,7 +17,10 @@ export default function Chat({
   messages: ChatMessage[];
   isLoading: boolean;
   onSpeak: (text: string) => void;
-  translations: any;
+  translations: {
+    startTitle: string;
+    startSub: string;
+  };
 }) {
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -29,15 +32,27 @@ export default function Chat({
     <div
       style={{
         flex: 1,
-        padding: "22px",
+        padding: "16px",
         overflowY: "auto",
-        background: "rgba(255,255,255,0.25)",
+        background: "var(--bg-main)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
       }}
     >
       {messages.length === 0 && (
-        <div style={{ textAlign: "center", marginTop: "80px", color: "white" }}>
-          <h2 style={{ fontSize: "18px" }}>{translations.startTitle}</h2>
-          <p style={{ opacity: 0.8 }}>{translations.startSub}</p>
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: "20vh",
+            color: "var(--color-text-chat)",
+            padding: "20px",
+          }}
+        >
+          <h2 style={{ fontSize: "1.2rem" }}>{translations.startTitle}</h2>
+          <p style={{ opacity: 0.8, color: "var(--color-text-secondary)" }}>
+            {translations.startSub}
+          </p>
         </div>
       )}
 
@@ -47,17 +62,24 @@ export default function Chat({
           style={{
             display: "flex",
             justifyContent: m.role === "user" ? "flex-end" : "flex-start",
-            marginBottom: "12px",
           }}
         >
           <div
             style={{
-              maxWidth: "70%",
+              maxWidth: "85%",
               padding: "12px 16px",
               borderRadius: "14px",
-              background: m.role === "user" ? "#4A90E2" : "white",
-              color: m.role === "user" ? "white" : "#333",
+              fontSize: "15px",
+              lineHeight: "1.4",
+              background:
+                m.role === "user"
+                  ? "var(--color-primary)"
+                  : "var(--bg-bot-message, #fff)",
+              color: m.role === "user" ? "white" : "var(--color-text-chat)",
               position: "relative",
+              border:
+                m.role === "bot" ? "1px solid var(--border-input)" : "none",
+              wordBreak: "break-word",
             }}
           >
             {m.text}
@@ -67,15 +89,21 @@ export default function Chat({
                 onClick={() => onSpeak(m.text)}
                 style={{
                   position: "absolute",
-                  bottom: 4,
-                  right: -40,
+                  bottom: 0,
+                  right: -36,
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
                   border: "none",
                   background: "transparent",
                   cursor: "pointer",
-                  color: "white",
+                  color: "var(--color-text-secondary)",
+                  padding: "0 4px",
+                  opacity: 0.8,
+                  transition: "opacity 0.2s",
                 }}
               >
-                <FiVolume2 />
+                <FiVolume2 size={18} />
               </button>
             )}
           </div>
@@ -83,8 +111,20 @@ export default function Chat({
       ))}
 
       {isLoading && (
-        <div style={{ color: "white" }}>
-          <FiLoader style={{ animation: "spin 1s linear infinite" }} />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            padding: "12px 16px",
+            width: "fit-content",
+            borderRadius: "14px",
+            background: "var(--bg-bot-message, #fff)",
+            border: "1px solid var(--border-input)",
+            color: "var(--color-text-secondary)",
+          }}
+        >
+          <FiLoader size={20} style={{ marginRight: "8px" }} />
+          <span>{translations.startTitle}</span>
         </div>
       )}
 

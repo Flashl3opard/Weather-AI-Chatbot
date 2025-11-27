@@ -1,19 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FiSun, FiMoon, FiMapPin, FiGlobe } from "react-icons/fi";
+import { FiSun, FiMoon, FiGlobe } from "react-icons/fi";
 import VoiceInput from "./components/Audio";
 import Chat, { ChatMessage } from "./components/Chat";
-import ChatInput from "./components/Input";
+import { ChatInput } from "./components/Input";
 
 export default function Home() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
   const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
 
+  const [lat, setLat] = useState<number | null>(35.6895);
+  const [lon, setLon] = useState<number | null>(139.6917);
+
   const [locationInput, setLocationInput] = useState("Tokyo");
-  const [lat, setLat] = useState(35.6895);
-  const [lon, setLon] = useState(139.6917);
   const [locationName, setLocationName] = useState("Tokyo");
 
   const [theme, setTheme] = useState("general");
@@ -39,15 +41,13 @@ export default function Home() {
       locationBtn: "📍 Use Current Location",
       startTitle: "Start a conversation",
       startSub: "Ask me about weather anywhere — or use your current location.",
-      speakBtn: "🔊 Speak",
       inputPlaceholder: "Type your question…",
       sendLabel: "Send",
-      locationPromptBot:
-        "Geolocation not supported. Please provide a city name.",
+      locationPromptBot: "Geolocation not supported. Please provide a city.",
       locationErrorBotPrefix: "Failed to get location: ",
       locationPlaceholder: "Enter City or Region",
-      themeTitle: "Theme",
     },
+
     ja: {
       appTitle: "天気アシスタント",
       locationUpdated: "位置情報を更新しました！",
@@ -56,30 +56,40 @@ export default function Home() {
       locationBtn: "📍 現在地を使用",
       startTitle: "会話を始めましょう",
       startSub: "都市の天気について聞くか現在地を使用してください。",
-      speakBtn: "🔊 再生",
       inputPlaceholder: "質問を書いてください…",
       sendLabel: "送信",
       locationPromptBot:
         "位置情報がサポートされていません。都市名を指定してください。",
       locationErrorBotPrefix: "位置情報の取得に失敗しました: ",
       locationPlaceholder: "都市または地域を入力",
-      themeTitle: "テーマ",
     },
   };
 
+  // 🔄 THEME INTEGRATION FIX: Map internal variables to global.css variables
   useEffect(() => {
-    if (typeof document !== "undefined") {
-      const root = document.documentElement;
-      if (themeMode === "dark") {
-        root.classList.add("dark-mode");
-      } else {
-        root.classList.remove("dark-mode");
-      }
-    }
+    const root = document.documentElement;
+    root.classList.remove("light-mode", "dark-mode");
+    root.classList.add(themeMode === "dark" ? "dark-mode" : "light-mode");
+
+    // Map global.css variables to the variables used in the React components
+    root.style.setProperty("--bg-main", "var(--bg-primary)");
+    root.style.setProperty("--bg-input", "var(--bg-input)");
+    root.style.setProperty("--border-input", "var(--border-input)");
+    root.style.setProperty("--color-text-chat", "var(--color-text)");
+    root.style.setProperty("--color-text-header", "var(--color-text)");
+    root.style.setProperty("--color-text-secondary", "var(--color-subtext)");
+
+    // Map component-specific colors using global.css variables
+    root.style.setProperty("--bg-button", "var(--bg-button)");
+    root.style.setProperty("--color-button-text", "var(--color-button-text)");
+    root.style.setProperty("--color-primary", "var(--color-bubble-user)"); // User bubble background
+    root.style.setProperty("--bg-user-bubble", "var(--color-bubble-user)"); // User bubble background (used in controls)
+    root.style.setProperty("--bg-bot-message", "var(--bg-bubble-bot)"); // Bot bubble background
+    root.style.setProperty("--bg-mic-active", "var(--color-mic-active)"); // Voice input active background
   }, [themeMode]);
 
   function speak(text: string) {
-    if (typeof window === "undefined" || !text) return;
+    if (!text) return;
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = lang === "ja" ? "ja-JP" : "en-US";
     window.speechSynthesis.cancel();
@@ -96,14 +106,14 @@ export default function Home() {
       (pos) => {
         const newLat = pos.coords.latitude;
         const newLon = pos.coords.longitude;
+
         setLat(newLat);
         setLon(newLon);
+
         setLocationName(
           lang === "ja" ? "現在地 (GPS)" : "Current Location (GPS)"
         );
-        setLocationInput(
-          lang === "ja" ? "現在地 (GPS)" : "Current Location (GPS)"
-        );
+
         alert(translations[lang].locationUpdated);
       },
       (err) => alert(translations[lang].geoFailedPrefix + err.message),
@@ -112,11 +122,19 @@ export default function Home() {
   }
 
   function handleLocationChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const newLocation = e.target.value;
-    setLocationInput(newLocation);
-    setLocationName(newLocation);
-    setLat(0);
-    setLon(0);
+    const newLoc = e.target.value;
+    setLocationInput(newLoc);
+    setLocationName(newLoc);
+
+    setLat(null);
+    setLon(null);
+  }
+
+  function buildLocationPayload() {
+    if (lat !== null && lon !== null) {
+      return { lat, lon };
+    }
+    return { location: locationInput };
   }
 
   async function sendMessage(input: string) {
@@ -125,29 +143,27 @@ export default function Home() {
     setMessages((prev) => [...prev, { role: "user", text: input }]);
     setIsLoading(true);
 
-    const locationToSend =
-      lat && lon ? { lat, lon } : { location: locationInput };
+    const payload = {
+      message: input,
+      theme,
+      lang,
+      ...buildLocationPayload(),
+    };
 
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: input,
-          theme,
-          lang,
-          ...locationToSend,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
-      const botReply =
-        data.reply ?? (lang === "ja" ? "応答なし" : "No response");
+      const reply = data.reply ?? (lang === "ja" ? "応答なし" : "No response.");
 
-      setMessages((prev) => [...prev, { role: "bot", text: botReply }]);
-    } catch (error) {
-      console.error(error);
+      setMessages((prev) => [...prev, { role: "bot", text: reply }]);
+    } catch (err) {
+      console.error(err);
       setMessages((prev) => [
         ...prev,
         {
@@ -163,9 +179,8 @@ export default function Home() {
     setIsLoading(false);
   }
 
-  const toggleTheme = () => {
+  const toggleTheme = () =>
     setThemeMode((prev) => (prev === "light" ? "dark" : "light"));
-  };
 
   return (
     <div
@@ -177,24 +192,31 @@ export default function Home() {
         flexDirection: "column",
         overflow: "hidden",
         fontFamily: "'Inter', sans-serif",
-        transition: "background 0.3s ease",
       }}
     >
-      <div style={{ padding: "24px", color: "var(--color-text-header)" }}>
+      <div style={{ padding: "16px 24px", color: "var(--color-text-header)" }}>
         <h1
           style={{
             margin: 0,
             fontSize: "28px",
             fontWeight: 700,
             display: "flex",
-            alignItems: "center",
             gap: "12px",
+            alignItems: "center",
           }}
         >
           <span style={{ fontSize: "36px" }}>🌤</span>
           {translations[lang].appTitle}
         </h1>
-        <p style={{ margin: "8px 0 0 0", opacity: 0.9, fontSize: "14px" }}>
+
+        <p
+          style={{
+            opacity: 0.9,
+            marginTop: "4px",
+            fontSize: "14px",
+            color: "var(--color-text-secondary)",
+          }}
+        >
           📍 {locationName} • {themeIcons[theme]}{" "}
           {theme.charAt(0).toUpperCase() + theme.slice(1)}
         </p>
@@ -214,18 +236,18 @@ export default function Home() {
         <button
           onClick={toggleTheme}
           style={{
-            padding: "10px 12px",
+            padding: "10px",
             borderRadius: "12px",
-            border: "none",
             background: "var(--bg-button)",
             color: "var(--color-button-text)",
+            border: "none",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
-            fontSize: "16px",
+            justifyContent: "center",
           }}
         >
-          {themeMode === "light" ? <FiMoon /> : <FiSun />}
+          {themeMode === "light" ? <FiMoon size={20} /> : <FiSun size={20} />}
         </button>
 
         <VoiceInput lang={lang} onResult={sendMessage} />
@@ -236,6 +258,7 @@ export default function Home() {
             gap: "8px",
             flexGrow: 1,
             maxWidth: "400px",
+            minWidth: "200px",
           }}
         >
           <input
@@ -248,22 +271,23 @@ export default function Home() {
               padding: "10px 12px",
               borderRadius: "12px",
               border: "1px solid var(--border-input)",
-              background: "var(--bg-input)",
+              background: "var(--bg-main)",
               color: "var(--color-text-chat)",
-              fontSize: "14px",
+              minWidth: 0,
             }}
           />
+
           <button
             onClick={getLocation}
             style={{
               padding: "10px 16px",
               borderRadius: "12px",
-              border: "none",
               background: "var(--bg-user-bubble)",
-              color: "white",
+              color: "var(--color-bubble-user-text)", // Use text color from global CSS
+              border: "none",
               cursor: "pointer",
+              flexShrink: 0,
               fontSize: "14px",
-              fontWeight: 600,
             }}
           >
             {translations[lang].locationBtn}
@@ -277,12 +301,10 @@ export default function Home() {
             padding: "10px 16px",
             borderRadius: "12px",
             border: "1px solid var(--border-input)",
-            background: "var(--bg-input)",
+            background: "var(--bg-main)",
             color: "var(--color-text-chat)",
-            fontSize: "14px",
-            fontWeight: 600,
-            cursor: "pointer",
             minWidth: "150px",
+            flexShrink: 0,
           }}
         >
           {Object.keys(themeIcons).map((key) => (
@@ -297,15 +319,18 @@ export default function Home() {
           style={{
             padding: "10px 12px",
             borderRadius: "12px",
-            border: "none",
             background: "var(--bg-button)",
             color: "var(--color-button-text)",
+            border: "none",
             cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
             fontSize: "14px",
-            fontWeight: 700,
+            flexShrink: 0,
           }}
         >
-          <FiGlobe style={{ verticalAlign: "middle", marginRight: "4px" }} />
+          <FiGlobe size={20} />
           {lang === "en" ? "日本語" : "EN"}
         </button>
       </div>

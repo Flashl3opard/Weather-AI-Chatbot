@@ -1,42 +1,145 @@
 "use client";
 
-import { useState } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  createContext,
+  useContext,
+} from "react";
 import { FiSend } from "react-icons/fi";
+import { FaSun, FaMoon } from "react-icons/fa";
 
-export default function ChatInput({
-  onSend,
-  isLoading,
-  placeholder,
-  sendLabel, // Not currently used but kept for completeness
-}: {
+type Theme = "light" | "dark";
+interface ThemeContextType {
+  theme: Theme;
+  toggleTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error("useTheme must be used within a ThemeProvider");
+  }
+  return context;
+};
+
+const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window !== "undefined") {
+      const storedTheme = localStorage.getItem("theme") as Theme;
+      if (storedTheme) return storedTheme;
+      return window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+    }
+    return "light";
+  });
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === "light" ? "dark" : "light"));
+  }, []);
+
+  // Set the class on the root element based on the theme
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove("light-mode", "dark-mode"); // Ensure clean class switching
+    root.classList.add(theme === "dark" ? "dark-mode" : "light-mode");
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  // Define mapping variables (internal variables used by components -> global CSS variables)
+  const setCssVariables = () => {
+    return {
+      // Backgrounds and Borders
+      "--bg-main": "var(--bg-primary)",
+      "--bg-input": "var(--bg-input)",
+      "--border-input": "var(--border-input)",
+
+      // Text Colors
+      "--color-text-chat": "var(--color-text)",
+      "--color-text-secondary": "var(--color-subtext)",
+
+      // Action/Primary Colors
+      "--color-primary": "var(--color-bubble-user)", // Used for the Send button
+
+      // Bot and User Bubble backgrounds (for the chat messages in ChatAppContainer demo)
+      "--bg-bot-message-demo": "var(--bg-bubble-bot)",
+      "--bg-user-message-demo": "var(--color-bubble-user)",
+      "--color-user-text-demo": "var(--color-bubble-user-text)",
+    } as React.CSSProperties;
+  };
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      <div style={setCssVariables()}>{children}</div>
+    </ThemeContext.Provider>
+  );
+};
+
+// --- ThemeToggle Component ---
+
+const ThemeToggle: React.FC = () => {
+  const { theme, toggleTheme } = useTheme();
+
+  return (
+    <button
+      onClick={toggleTheme}
+      title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+      style={{
+        position: "fixed",
+        top: "20px",
+        right: "20px",
+        padding: "10px",
+        borderRadius: "50%",
+        border: "1px solid var(--border-input)",
+        background: "var(--bg-header)", // Using the header background for better visibility
+        color: "var(--color-text)",
+        cursor: "pointer",
+        zIndex: 1000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {theme === "light" ? <FaMoon size={18} /> : <FaSun size={18} />}
+    </button>
+  );
+};
+
+// --- ChatInput Component ---
+
+interface ChatInputProps {
   onSend: (msg: string) => void;
   isLoading: boolean;
   placeholder: string;
   sendLabel: string;
-}) {
+}
+
+export function ChatInput({ onSend, isLoading, placeholder }: ChatInputProps) {
   const [text, setText] = useState("");
 
   function handleSend() {
-    // Only send if there's text and we aren't loading
     if (!text.trim() || isLoading) return;
     onSend(text.trim());
     setText("");
   }
 
+  const isDisabled = isLoading || !text.trim();
+
   return (
     <div
       style={{
-        padding: "16px 24px",
-        // Use border color variable for theme compatibility
-        borderTop: "1px solid var(--border-input, #e9ecef)",
-        // Use background variable for theme compatibility (main chat background is dark in dark mode)
-        background: "var(--bg-input, #ffffff)",
+        padding: "12px 16px",
+        borderTop: "1px solid var(--border-input)",
+        background: "var(--bg-header)", // Use header background for the bottom bar
         display: "flex",
         alignItems: "center",
-        gap: "12px",
+        gap: "8px",
       }}
     >
-      {/* TEXT INPUT */}
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -44,39 +147,124 @@ export default function ChatInput({
         placeholder={placeholder}
         style={{
           flexGrow: 1,
-          padding: "12px 16px",
+          padding: "10px 14px",
           fontSize: "15px",
           borderRadius: "12px",
-          // Use CSS variables for theme compatibility
-          border: "1px solid var(--border-input, #ddd)",
+          border: "1px solid var(--border-input)",
           outline: "none",
-          background: "var(--bg-input, #fff)",
-          color: "var(--color-text-chat, #222)", // Use chat text color
+          background: "var(--bg-primary)", // Use primary background for the input field itself
+          color: "var(--color-text-chat)",
+          minWidth: 0,
         }}
       />
 
-      {/* SEND BUTTON */}
       <button
         onClick={handleSend}
-        disabled={isLoading || !text.trim()} // Disable if no text
+        disabled={isDisabled}
         style={{
-          padding: "12px 18px",
-          // Use a fixed color or defined variable for the main action button
-          background: "#4A90E2", // Using a color that contrasts well
+          padding: "10px 14px",
+          background: "var(--color-send-button, #10B981)", // Use send button color
           color: "white",
           borderRadius: "12px",
           border: "none",
           fontWeight: 600,
-          cursor: isLoading || !text.trim() ? "not-allowed" : "pointer",
-          opacity: isLoading || !text.trim() ? 0.6 : 1,
+          cursor: isDisabled ? "not-allowed" : "pointer",
+          opacity: isDisabled ? 0.6 : 1,
           transition: "opacity 0.2s",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          flexShrink: 0,
         }}
       >
         <FiSend size={18} />
       </button>
     </div>
+  );
+}
+
+// --- ChatAppContainer Demo ---
+
+export default function ChatAppContainer() {
+  const [messages, setMessages] = useState<string[]>([]);
+  const [isThinking, setIsThinking] = useState(false);
+  const { theme } = useTheme(); // Use the theme context within the chat container
+
+  const handleSend = (msg: string) => {
+    setIsThinking(true);
+    setMessages((prev) => [...prev, `You: ${msg}`]);
+    setTimeout(() => {
+      setMessages((prev) => [...prev, `AI: Thinking about "${msg}"...`]);
+      setIsThinking(false);
+    }, 1500);
+  };
+
+  useEffect(() => {
+    document.body.style.margin = "0";
+    document.body.style.padding = "0";
+  }, []);
+
+  return (
+    <ThemeProvider>
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-end",
+          background: "var(--bg-main)",
+          color: "var(--color-text-chat)",
+          paddingTop: "60px",
+        }}
+      >
+        <ThemeToggle />
+
+        <div style={{ padding: "16px", flexGrow: 1, overflowY: "auto" }}>
+          {messages.length === 0 ? (
+            <p
+              style={{
+                textAlign: "center",
+                color: "var(--color-text-secondary)",
+              }}
+            >
+              Start a conversation!
+            </p>
+          ) : (
+            messages.map((msg, index) => (
+              <div
+                key={index}
+                style={{
+                  marginBottom: "8px",
+                  padding: "12px 16px",
+                  borderRadius: "14px",
+                  maxWidth: "75%",
+                  wordBreak: "break-word",
+                  // Use theme variables for bubbles
+                  background: msg.startsWith("You:")
+                    ? "var(--bg-user-message-demo)"
+                    : "var(--bg-bot-message-demo)",
+                  color: msg.startsWith("You:")
+                    ? "var(--color-user-text-demo)"
+                    : "var(--color-text-chat)",
+                  marginLeft: msg.startsWith("You:") ? "auto" : "0",
+                  border: msg.startsWith("AI:")
+                    ? "1px solid var(--border-bubble-bot, #e5e7eb)"
+                    : "none",
+                }}
+              >
+                {msg}
+              </div>
+            ))
+          )}
+        </div>
+
+        <ChatInput
+          onSend={handleSend}
+          isLoading={isThinking}
+          placeholder="Type your message..."
+          sendLabel="Send"
+        />
+      </div>
+    </ThemeProvider>
   );
 }
