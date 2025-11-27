@@ -34,7 +34,7 @@ export default function Home() {
 
   const translations = {
     en: {
-      appTitle: "Weather AI chatbot",
+      appTitle: "AtmosAI",
       locationUpdated: "Location updated!",
       geoNotSupported: "Geolocation not supported.",
       geoFailedPrefix: "Failed to get location: ",
@@ -249,9 +249,6 @@ export default function Home() {
           {themeMode === "light" ? <FiMoon size={20} /> : <FiSun size={20} />}
         </button>
 
-        {/* MIC */}
-        <VoiceInput lang={lang} onResult={sendMessage} />
-
         {/* LOCATION INPUT */}
         <div
           style={{
@@ -346,11 +343,13 @@ export default function Home() {
         translations={translations[lang]}
       />
 
+      {/* CHAT INPUT with VoiceInput component passed as a prop */}
       <ChatInput
         onSend={sendMessage}
         isLoading={isLoading}
         placeholder={translations[lang].inputPlaceholder}
         sendLabel={translations[lang].sendLabel}
+        voiceInput={<VoiceInput lang={lang} onResult={sendMessage} />}
       />
     </div>
   );
