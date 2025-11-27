@@ -42,30 +42,21 @@ const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
   }, []);
 
-  // Set the class on the root element based on the theme
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.remove("light-mode", "dark-mode"); // Ensure clean class switching
+    root.classList.remove("light-mode", "dark-mode");
     root.classList.add(theme === "dark" ? "dark-mode" : "light-mode");
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  // Define mapping variables (internal variables used by components -> global CSS variables)
   const setCssVariables = () => {
     return {
-      // Backgrounds and Borders
       "--bg-main": "var(--bg-primary)",
       "--bg-input": "var(--bg-input)",
       "--border-input": "var(--border-input)",
-
-      // Text Colors
       "--color-text-chat": "var(--color-text)",
       "--color-text-secondary": "var(--color-subtext)",
-
-      // Action/Primary Colors
-      "--color-primary": "var(--color-bubble-user)", // Used for the Send button
-
-      // Bot and User Bubble backgrounds (for the chat messages in ChatAppContainer demo)
+      "--color-primary": "var(--color-bubble-user)",
       "--bg-bot-message-demo": "var(--bg-bubble-bot)",
       "--bg-user-message-demo": "var(--color-bubble-user)",
       "--color-user-text-demo": "var(--color-bubble-user-text)",
@@ -79,7 +70,9 @@ const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// --- ThemeToggle Component ---
+// ======================================================
+// THEME TOGGLE BUTTON
+// ======================================================
 
 const ThemeToggle: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -95,7 +88,7 @@ const ThemeToggle: React.FC = () => {
         padding: "10px",
         borderRadius: "50%",
         border: "1px solid var(--border-input)",
-        background: "var(--bg-header)", // Using the header background for better visibility
+        background: "var(--bg-header)",
         color: "var(--color-text)",
         cursor: "pointer",
         zIndex: 1000,
@@ -109,7 +102,9 @@ const ThemeToggle: React.FC = () => {
   );
 };
 
-// --- ChatInput Component ---
+// ======================================================
+// CHAT INPUT COMPONENT
+// ======================================================
 
 interface ChatInputProps {
   onSend: (msg: string) => void;
@@ -134,7 +129,7 @@ export function ChatInput({ onSend, isLoading, placeholder }: ChatInputProps) {
       style={{
         padding: "12px 16px",
         borderTop: "1px solid var(--border-input)",
-        background: "var(--bg-header)", // Use header background for the bottom bar
+        background: "var(--bg-header)",
         display: "flex",
         alignItems: "center",
         gap: "8px",
@@ -151,9 +146,9 @@ export function ChatInput({ onSend, isLoading, placeholder }: ChatInputProps) {
           fontSize: "15px",
           borderRadius: "12px",
           border: "1px solid var(--border-input)",
-          outline: "none",
-          background: "var(--bg-primary)", // Use primary background for the input field itself
+          background: "var(--bg-primary)",
           color: "var(--color-text-chat)",
+          outline: "none",
           minWidth: 0,
         }}
       />
@@ -163,14 +158,13 @@ export function ChatInput({ onSend, isLoading, placeholder }: ChatInputProps) {
         disabled={isDisabled}
         style={{
           padding: "10px 14px",
-          background: "var(--color-send-button, #10B981)", // Use send button color
+          background: "var(--color-send-button, #10B981)",
           color: "white",
           borderRadius: "12px",
           border: "none",
           fontWeight: 600,
           cursor: isDisabled ? "not-allowed" : "pointer",
           opacity: isDisabled ? 0.6 : 1,
-          transition: "opacity 0.2s",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -183,18 +177,20 @@ export function ChatInput({ onSend, isLoading, placeholder }: ChatInputProps) {
   );
 }
 
-// --- ChatAppContainer Demo ---
+// ======================================================
+// MAIN CHAT APP (WITH LOADING ANIMATION)
+// ======================================================
 
 export default function ChatAppContainer() {
   const [messages, setMessages] = useState<string[]>([]);
   const [isThinking, setIsThinking] = useState(false);
-  const { theme } = useTheme(); // Use the theme context within the chat container
 
   const handleSend = (msg: string) => {
     setIsThinking(true);
     setMessages((prev) => [...prev, `You: ${msg}`]);
+
     setTimeout(() => {
-      setMessages((prev) => [...prev, `AI: Thinking about "${msg}"...`]);
+      setMessages((prev) => [...prev, `AI: Responding to "${msg}"...`]);
       setIsThinking(false);
     }, 1500);
   };
@@ -221,14 +217,44 @@ export default function ChatAppContainer() {
 
         <div style={{ padding: "16px", flexGrow: 1, overflowY: "auto" }}>
           {messages.length === 0 ? (
-            <p
+            // ---------------------------------------
+            // ✨ NEW — Animated Loader
+            // ---------------------------------------
+            <div
               style={{
-                textAlign: "center",
-                color: "var(--color-text-secondary)",
+                width: "100%",
+                display: "flex",
+                justifyContent: "center",
+                marginTop: "40px",
               }}
             >
-              Start a conversation!
-            </p>
+              <div style={{ display: "flex", gap: "6px" }}>
+                <span className="dot"></span>
+                <span className="dot"></span>
+                <span className="dot"></span>
+              </div>
+
+              <style>{`
+                .dot {
+                  width: 10px;
+                  height: 10px;
+                  border-radius: 50%;
+                  background: var(--color-text-secondary);
+                  display: inline-block;
+                  animation: pulse 1.4s infinite ease-in-out;
+                }
+                .dot:nth-child(2) {
+                  animation-delay: 0.2s;
+                }
+                .dot:nth-child(3) {
+                  animation-delay: 0.4s;
+                }
+                @keyframes pulse {
+                  0%, 80%, 100% { transform: scale(0.4); opacity: 0.4; }
+                  40% { transform: scale(1); opacity: 1; }
+                }
+              `}</style>
+            </div>
           ) : (
             messages.map((msg, index) => (
               <div
@@ -239,7 +265,6 @@ export default function ChatAppContainer() {
                   borderRadius: "14px",
                   maxWidth: "75%",
                   wordBreak: "break-word",
-                  // Use theme variables for bubbles
                   background: msg.startsWith("You:")
                     ? "var(--bg-user-message-demo)"
                     : "var(--bg-bot-message-demo)",

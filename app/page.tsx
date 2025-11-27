@@ -34,12 +34,12 @@ export default function Home() {
 
   const translations = {
     en: {
-      appTitle: "Weather Assistant",
+      appTitle: "Weather AI chatbot",
       locationUpdated: "Location updated!",
       geoNotSupported: "Geolocation not supported.",
       geoFailedPrefix: "Failed to get location: ",
       locationBtn: "📍 Use Current Location",
-      startTitle: "Start a conversation",
+      startTitle: "",
       startSub: "Ask me about weather anywhere — or use your current location.",
       inputPlaceholder: "Type your question…",
       sendLabel: "Send",
@@ -65,13 +65,11 @@ export default function Home() {
     },
   };
 
-  // 🔄 THEME INTEGRATION FIX: Map internal variables to global.css variables
   useEffect(() => {
     const root = document.documentElement;
     root.classList.remove("light-mode", "dark-mode");
     root.classList.add(themeMode === "dark" ? "dark-mode" : "light-mode");
 
-    // Map global.css variables to the variables used in the React components
     root.style.setProperty("--bg-main", "var(--bg-primary)");
     root.style.setProperty("--bg-input", "var(--bg-input)");
     root.style.setProperty("--border-input", "var(--border-input)");
@@ -79,13 +77,12 @@ export default function Home() {
     root.style.setProperty("--color-text-header", "var(--color-text)");
     root.style.setProperty("--color-text-secondary", "var(--color-subtext)");
 
-    // Map component-specific colors using global.css variables
     root.style.setProperty("--bg-button", "var(--bg-button)");
     root.style.setProperty("--color-button-text", "var(--color-button-text)");
-    root.style.setProperty("--color-primary", "var(--color-bubble-user)"); // User bubble background
-    root.style.setProperty("--bg-user-bubble", "var(--color-bubble-user)"); // User bubble background (used in controls)
-    root.style.setProperty("--bg-bot-message", "var(--bg-bubble-bot)"); // Bot bubble background
-    root.style.setProperty("--bg-mic-active", "var(--color-mic-active)"); // Voice input active background
+    root.style.setProperty("--color-primary", "var(--color-bubble-user)");
+    root.style.setProperty("--bg-user-bubble", "var(--color-bubble-user)");
+    root.style.setProperty("--bg-bot-message", "var(--bg-bubble-bot)");
+    root.style.setProperty("--bg-mic-active", "var(--color-mic-active)");
   }, [themeMode]);
 
   function speak(text: string) {
@@ -194,6 +191,7 @@ export default function Home() {
         fontFamily: "'Inter', sans-serif",
       }}
     >
+      {/* HEADER */}
       <div style={{ padding: "16px 24px", color: "var(--color-text-header)" }}>
         <h1
           style={{
@@ -205,7 +203,6 @@ export default function Home() {
             alignItems: "center",
           }}
         >
-          <span style={{ fontSize: "36px" }}>🌤</span>
           {translations[lang].appTitle}
         </h1>
 
@@ -222,6 +219,7 @@ export default function Home() {
         </p>
       </div>
 
+      {/* CONTROLS */}
       <div
         style={{
           padding: "16px 24px",
@@ -233,6 +231,7 @@ export default function Home() {
           alignItems: "center",
         }}
       >
+        {/* THEME TOGGLE */}
         <button
           onClick={toggleTheme}
           style={{
@@ -250,8 +249,10 @@ export default function Home() {
           {themeMode === "light" ? <FiMoon size={20} /> : <FiSun size={20} />}
         </button>
 
+        {/* MIC */}
         <VoiceInput lang={lang} onResult={sendMessage} />
 
+        {/* LOCATION INPUT */}
         <div
           style={{
             display: "flex",
@@ -283,7 +284,7 @@ export default function Home() {
               padding: "10px 16px",
               borderRadius: "12px",
               background: "var(--bg-user-bubble)",
-              color: "var(--color-bubble-user-text)", // Use text color from global CSS
+              color: "var(--color-bubble-user-text)",
               border: "none",
               cursor: "pointer",
               flexShrink: 0,
@@ -294,6 +295,7 @@ export default function Home() {
           </button>
         </div>
 
+        {/* THEME SELECT */}
         <select
           value={theme}
           onChange={(e) => setTheme(e.target.value)}
@@ -314,6 +316,7 @@ export default function Home() {
           ))}
         </select>
 
+        {/* LANGUAGE TOGGLE */}
         <button
           onClick={() => setLang((prev) => (prev === "en" ? "ja" : "en"))}
           style={{
@@ -335,6 +338,7 @@ export default function Home() {
         </button>
       </div>
 
+      {/* CHAT WINDOW */}
       <Chat
         messages={messages}
         isLoading={isLoading}

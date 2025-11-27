@@ -1,34 +1,47 @@
+
 export interface WeatherData {
-  city: string;
-  country: string;
   temp: number;
-  feels: number;
-  desc: string;
-  is_day: boolean;
+  feels_like: number;
+  temp_min: number;
+  temp_max: number;
+  humidity: number;
+  wind_speed: number;
+  wind_deg: number;
+  mainWeather: string;
+  condition: string;
+  visibility: number;
+  clouds: number;
+  sunrise: string;
+  sunset: string;
 }
 
-export async function getWeather(location: string, lang: "en" | "ja"): Promise<WeatherData> {
-  const API_KEY = process.env.WEATHERAPI_KEY;
-  if (!API_KEY) throw new Error("Missing WEATHERAPI_KEY");
-
-  const url = `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${encodeURIComponent(
-    location
-  )}&lang=${lang}`;
-
-  const res = await fetch(url);
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error("WeatherAPI error: " + err);
+export async function getWeather(lat: number, lon: number): Promise<WeatherData> {
+  if (!process.env.OPENWEATHER_API_KEY) {
+    throw new Error("Missing OPENWEATHER_API_KEY");
   }
 
+  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${process.env.OPENWEATHER_API_KEY}`;
+
+  const res = await fetch(url);
   const data = await res.json();
 
+  if (!res.ok) {
+    throw new Error("Failed to fetch weather");
+  }
+
   return {
-    city: data.location?.name ?? location,
-    country: data.location?.country ?? "",
-    temp: data.current?.temp_c ?? 0,
-    feels: data.current?.feelslike_c ?? 0,
-    desc: data.current?.condition?.text ?? "",
-    is_day: data.current?.is_day === 1,
+    temp: data.main.temp,
+    feels_like: data.main.feels_like,
+    temp_min: data.main.temp_min,
+    temp_max: data.main.temp_max,
+    humidity: data.main.humidity,
+    wind_speed: data.wind.speed,
+    wind_deg: data.wind.deg,
+    mainWeather: data.weather?.[0]?.main ?? "Unknown",
+    condition: data.weather?.[0]?.description ?? "Unknown",
+    visibility: data.visibility ?? 0,
+    clouds: data.clouds?.all ?? 0,
+    sunrise: new Date(data.sys.sunrise * 1000).toLocaleTimeString(),
+    sunset: new Date(data.sys.sunset * 1000).toLocaleTimeString(),
   };
 }

@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { getWeather } from "../../../lib/weather";
 
-
 async function getCoordinates(city: string) {
   const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
     city
-  )}&count=1&language=ja&format=json`;
+  )}&count=1&format=json`;
 
   const res = await fetch(url);
   const data = await res.json();
@@ -22,19 +21,17 @@ async function getCoordinates(city: string) {
   throw new Error(`City not found: ${city}`);
 }
 
-
 async function extractCityName(message: string): Promise<string> {
   const prompt = `
-あなたは都市名抽出の専門家です。
+You are an expert at extracting city names.
+Rules:
+1. Return ONLY the detected city name.
+2. If no city → return "NONE".
+3. Do NOT return any other text.
 
-以下のルールに従ってください:
-1. メッセージに都市名が含まれている場合のみ、その都市名 **だけ** を返す
-2. 含まれていない場合は "NONE" と返す
-3. 他の文章は絶対に返さない
+Message: "${message}"
 
-メッセージ: "${message}"
-
-都市名:
+Answer:
 `;
 
   try {
@@ -49,22 +46,12 @@ async function extractCityName(message: string): Promise<string> {
       }
     );
 
-    const raw = await response.text();
-    const data = JSON.parse(raw);
+    const data = await response.json();
 
     const result =
       data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
-    const lower = result.toLowerCase();
 
-    if (
-      lower === "none" ||
-      lower.includes("ない") ||
-      lower.includes("ありません") ||
-      result.length > 50
-    ) {
-      return "";
-    }
-
+    if (result.toLowerCase() === "none" || result.length > 50) return "";
     return result;
   } catch (e) {
     console.error("City extraction failed:", e);
@@ -72,30 +59,18 @@ async function extractCityName(message: string): Promise<string> {
   }
 }
 
-// ======================================================
-//                MAIN CHAT HANDLER
-// ======================================================
+
 export async function POST(req: Request) {
   try {
-    // -----------------------------------------
-    // Parse & Type Incoming Body
-    // -----------------------------------------
     const body = await req.json();
 
-    const lang: "en" | "ja" = body.lang; // ⭐ FULLY TYPED
+    const lang: "en" | "ja" = body.lang;
     const message: string = body.message;
     const theme: string = body.theme;
 
     const reqLat: number | undefined = body.lat;
     const reqLon: number | undefined = body.lon;
 
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error("Missing GEMINI_API_KEY");
-    }
-
-    // -----------------------------------------
-    // Language Packs
-    // -----------------------------------------
     const L = {
       en: {
         needLocation: "Location is required. Please enable GPS.",
@@ -105,55 +80,48 @@ export async function POST(req: Request) {
         aiError: "AI returned no response.",
         sysRole: (city: string, theme: string) => `
 You are a friendly weather assistant.
-Your job is to answer ONLY in **English**.
+Language: English only.
 Theme personality: ${theme}
 
 Location: ${city}
 User question: "${message}"
 
-Respond:
-• In **2–3 short English sentences**
-• Friendly and practical
-• Based on FULL weather data provided below
+Respond in:
+• 2–3 short sentences
+• Friendly + practical
+• Based on ALL weather data below
 • Include safety warnings if needed
 `,
       },
-
       ja: {
         needLocation: "位置情報が必要です。現在地の使用を許可してください。",
-        notFound: (c: string) =>
-          `「${c}」が見つかりませんでした。位置情報の使用を許可してください。`,
+        notFound: (c: string) => `「${c}」が見つかりませんでした。`,
         fallbackCity: "現在地",
         aiError: "（AIからの応答がありません）",
         sysRole: (city: string, theme: string) => `
 あなたは親しみやすい天気アドバイザーです。
-返答は必ず **日本語のみ** で書いてください。
-テーマの雰囲気: ${theme}
+返答は必ず日本語で。
 
+テーマ: ${theme}
 場所: ${city}
-ユーザーの質問: 「${message}」
+質問: 「${message}」
 
-以下の天気データをすべて参考にし、
-• 2〜3文で簡潔に
-• 親しみやすく自然な口調で
-• 警告が必要なら注意を促す
-
-で回答してください。
+以下の天気データを参考に、
+• 2〜3文で
+• 優しく自然に
+• 必要なら注意喚起
 `,
       },
     };
 
-    const t = L[lang]; // ⭐ NO ERROR NOW
+    const t = L[lang];
 
-    // -----------------------------------------
-    // City / Location Handling
-    // -----------------------------------------
-    let lat: number | undefined;
-    let lon: number | undefined;
+
+    let lat: number | undefined = reqLat;
+    let lon: number | undefined = reqLon;
     let city: string = t.fallbackCity;
 
     const extractedCity = await extractCityName(message);
-    console.log("Extracted city:", extractedCity);
 
     if (extractedCity) {
       try {
@@ -162,57 +130,41 @@ Respond:
         lon = info.lon;
         city = info.city;
       } catch {
-        if (reqLat && reqLon) {
-          lat = reqLat;
-          lon = reqLon;
-          city = t.fallbackCity;
-        } else {
+        if (!lat || !lon) {
           return NextResponse.json({
             needsLocation: true,
             message: t.notFound(extractedCity),
           });
         }
       }
-    } else if (reqLat && reqLon) {
-      lat = reqLat;
-      lon = reqLon;
-      city = t.fallbackCity;
-    } else {
+    }
+
+    if (!lat || !lon) {
       return NextResponse.json({
         needsLocation: true,
         message: t.needLocation,
       });
     }
 
-    if (!lat || !lon) {
-      throw new Error("Missing coordinates");
-    }
-
-    // -----------------------------------------
-    // Fetch Weather
-    // -----------------------------------------
     const weather = await getWeather(lat, lon);
 
     const weatherBlock = `
-Weather Data:
-• Temperature: ${weather.temp}°C
-• Feels like: ${weather.feels_like}°C
-• Min/Max: ${weather.temp_min}°C / ${weather.temp_max}°C
-• Humidity: ${weather.humidity}%
-• Wind: ${weather.wind_speed} m/s (${weather.wind_deg}°)
-• Condition: ${weather.mainWeather} (${weather.condition})
-• Visibility: ${weather.visibility}m
-• Clouds: ${weather.clouds}%
-• Sunrise: ${weather.sunrise}
-• Sunset: ${weather.sunset}
+Weather Info:
+Temp: ${weather.temp}°C
+Feels Like: ${weather.feels_like}°C
+Min/Max: ${weather.temp_min}/${weather.temp_max}°C
+Humidity: ${weather.humidity}%
+Wind: ${weather.wind_speed} m/s (${weather.wind_deg}°)
+Condition: ${weather.mainWeather} (${weather.condition})
+Visibility: ${weather.visibility}m
+Clouds: ${weather.clouds}%
+Sunrise: ${weather.sunrise}
+Sunset: ${weather.sunset}
 `;
 
-    const finalPrompt = t.sysRole(city, theme) + "\n" + weatherBlock;
+    const finalPrompt = t.sysRole(city, theme) + weatherBlock;
 
-    // -----------------------------------------
-    // Gemini Request
-    // -----------------------------------------
-    const response = await fetch(
+    const aiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
@@ -223,10 +175,9 @@ Weather Data:
       }
     );
 
-    const raw = await response.text();
-    const data = JSON.parse(raw);
-
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text ?? t.aiError;
+    const aiData = await aiRes.json();
+    const reply =
+      aiData.candidates?.[0]?.content?.parts?.[0]?.text ?? t.aiError;
 
     return NextResponse.json({ reply, weather, city });
   } catch (err: any) {
