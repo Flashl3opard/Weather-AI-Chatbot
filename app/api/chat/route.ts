@@ -1,9 +1,33 @@
-
 import { NextResponse } from "next/server";
+
+// Define an interface for the expected JSON body
+interface RequestBody {
+  message?: string;
+  location?: string;
+  topic?: string;
+  lang?: string; // Expect 'ja' or 'en'
+}
 
 export async function POST(req: Request) {
   try {
-    const { query, city, lang } = await req.json();
+    // Cast the destructured body to the defined interface for better type safety
+    const { message, location, topic, lang: rawLang } = (await req.json()) as RequestBody;
+
+    // Validate essential fields
+    if (!message || !location) {
+      return NextResponse.json(
+        { error: "Missing message or location" },
+        { status: 400 }
+      );
+    }
+
+    // Explicitly define the accepted language type
+    type LanguageKey = 'ja' | 'en';
+
+    // 1. **FIX for the 'any' type error and adding validation:**
+    // Ensure the language is a valid key, default to 'en' if missing or invalid.
+    const lang: LanguageKey = (rawLang === 'ja' || rawLang === 'en') ? rawLang : 'en';
+
 
     const weatherApiKey = process.env.WEATHERAPI_KEY;
     const geminiKey = process.env.GEMINI_API_KEY;
@@ -15,10 +39,13 @@ export async function POST(req: Request) {
       );
     }
 
+    // ---------------- WEATHER API ----------------
+    // Use the validated/defaulted 'lang' variable for the API call
     const weatherRes = await fetch(
+      // The API call logic for lang is simplified since 'lang' is now a validated LanguageKey
       `https://api.weatherapi.com/v1/current.json?key=${weatherApiKey}&q=${encodeURIComponent(
-        city
-      )}&lang=ja`
+        location
+      )}&lang=${lang === "ja" ? "ja" : "en"}`
     );
 
     if (!weatherRes.ok) {
@@ -40,42 +67,57 @@ export async function POST(req: Request) {
       is_day: weatherData.current?.is_day === 1,
     };
 
-    const systemPromptJa = `
-あなたは旅行プランナーAIです。以下の情報に基づいて、日帰りや短いお出かけプランを日本語で提案してください。
+    // ---------------- PROMPT ----------------
 
-- ユーザーのリクエスト: ${query}
-- 天気情報:
-  都市: ${weather.city} (${weather.region}, ${weather.country})
-  気温: ${weather.temp}°C
-  体感温度: ${weather.feels}°C
-  状況: ${weather.desc}
-  昼/夜: ${weather.is_day ? "昼" : "夜"}
+    // 2. **Type the prompts object with LanguageKey**
+    const prompts: Record<LanguageKey, string> = {
+      ja: `
+あなたはスマート旅行・お出かけアシスタントAIです。
+ユーザーの質問、現在の天気、そしてトピック (${topic}) に基づいて最適な提案をしてください。
 
-出力フォーマット:
+● ユーザーのリクエスト:
+${message}
+
+● 天気情報:
+- 都市: ${weather.city}, ${weather.region}, ${weather.country}
+- 気温: ${weather.temp}°C (体感: ${weather.feels}°C)
+- 天気: ${weather.desc}
+- 時間帯: ${weather.is_day ? "昼" : "夜"}
+
+● 回答フォーマット:
 1) おすすめの場所やアクティビティ
 2) 服装・持ち物のアドバイス
 3) 天気に関する注意点
-`;
 
-    const systemPromptEn = `
-You are a travel planner AI. Based on the following, suggest a short outing or day trip plan in English.
+短く分かりやすく、日本語で回答してください。
+`,
 
-- User request: ${query}
-- Weather information:
-  City: ${weather.city} (${weather.region}, ${weather.country})
-  Temperature: ${weather.temp}°C
-  Feels like: ${weather.feels}°C
-  Condition: ${weather.desc}
-  Time: ${weather.is_day ? "daytime" : "night"}
+      en: `
+You are a smart travel & outing assistant AI.
+Based on the user's message, weather conditions, and selected topic (${topic}), suggest the best plan.
 
-Output format:
-1) Recommended places/activities
-2) Outfit and items to bring
+● User question:
+${message}
+
+● Weather:
+- City: ${weather.city}, ${weather.region}, ${weather.country}
+- Temp: ${weather.temp}°C (feels: ${weather.feels}°C)
+- Condition: ${weather.desc}
+- Time: ${weather.is_day ? "day" : "night"}
+
+● Output:
+1) Recommended places / activities
+2) Outfit and item suggestions
 3) Weather-related cautions
-`;
 
-    const prompt = lang === "ja" ? systemPromptJa : systemPromptEn;
+Keep the tone simple and friendly.
+`,
+    };
 
+    // The TS error is now resolved because 'lang' is explicitly typed as 'ja' | 'en'
+    const prompt = prompts[lang];
+
+    // ---------------- GEMINI CALL ----------------
     const geminiRes = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
       {
@@ -91,6 +133,7 @@ Output format:
     );
 
     if (!geminiRes.ok) {
+      console.error("Gemini API Error:", await geminiRes.text());
       return NextResponse.json(
         { error: "Failed to call Gemini" },
         { status: 500 }
@@ -98,15 +141,15 @@ Output format:
     }
 
     const geminiJson = await geminiRes.json();
-    const suggestion =
+    const reply =
       geminiJson.candidates?.[0]?.content?.parts?.[0]?.text ??
       (lang === "ja"
-        ? "プランの生成に失敗しました。もう一度お試しください。"
-        : "Failed to generate a plan. Please try again.");
+        ? "プラン生成に失敗しました。もう一度お試しください。"
+        : "Failed to generate a plan. Try again.");
 
-    return NextResponse.json({ weather, suggestion });
+    return NextResponse.json({ reply, weather });
   } catch (err) {
-    console.error(err);
+    console.error("Chat Route Error:", err);
     return NextResponse.json(
       { error: "Server error" },
       { status: 500 }

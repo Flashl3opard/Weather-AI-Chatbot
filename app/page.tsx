@@ -29,13 +29,13 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
   const [lang, setLang] = useState<"en" | "ja">("en");
+
   const [locationName, setLocationName] = useState("Tokyo");
   const [topic, setTopic] = useState("general");
   const [isListening, setIsListening] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
-  // --- Theme Application Logic ---
   useEffect(() => {
     if (typeof document !== "undefined") {
       const root = document.documentElement;
@@ -123,13 +123,19 @@ export default function Home() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userText, theme: topic, lang }),
+        body: JSON.stringify({
+          message: userText,
+          location: locationName,
+          topic,
+          lang,
+        }),
       });
 
       const data = await res.json();
 
       setMessages((prev) => [
         ...prev,
+
         { role: "bot", text: data.reply ?? "No response" },
       ]);
     } catch {
@@ -139,8 +145,8 @@ export default function Home() {
           role: "bot",
           text:
             lang === "ja"
-              ? "❌ エラーが発生しました。"
-              : "❌ Something went wrong.",
+              ? "❌ エラーが発生しました。ネットワークまたはAPIを確認してください。"
+              : "❌ Something went wrong. Check network or API.",
         },
       ]);
     }
@@ -161,19 +167,19 @@ export default function Home() {
       style={{
         height: "100vh",
         width: "100vw",
-        background: "var(--bg-primary)", // Using CSS variable
+        background: "var(--bg-primary)",
         display: "flex",
         flexDirection: "column",
         transition: "background 0.3s",
         fontFamily: "Inter, sans-serif",
-        color: "var(--color-text)", // Using CSS variable
+        color: "var(--color-text)",
       }}
     >
       <header
         style={{
-          background: "var(--bg-header)", // Using CSS variable
+          background: "var(--bg-header)",
           padding: "20px 28px",
-          borderBottom: "1px solid var(--border-primary)", // Using CSS variable
+          borderBottom: "1px solid var(--border-primary)",
         }}
       >
         <h1
@@ -181,7 +187,7 @@ export default function Home() {
             margin: 0,
             fontSize: "24px",
             fontWeight: 700,
-            color: "var(--color-text)", // Using CSS variable
+            color: "var(--color-text)",
             display: "flex",
             alignItems: "center",
             gap: "10px",
@@ -192,7 +198,7 @@ export default function Home() {
         <p
           style={{
             margin: "6px 0 0 0",
-            color: "var(--color-subtext)", // Using CSS variable
+            color: "var(--color-subtext)",
             fontSize: "14px",
           }}
         >
@@ -203,8 +209,8 @@ export default function Home() {
       <div
         style={{
           padding: "12px 24px",
-          background: "var(--bg-header)", // Using CSS variable
-          borderBottom: "1px solid var(--border-primary)", // Using CSS variable
+          background: "var(--bg-header)",
+          borderBottom: "1px solid var(--border-primary)",
           display: "flex",
           gap: "10px",
           alignItems: "center",
@@ -216,8 +222,8 @@ export default function Home() {
             padding: "10px 16px",
             background: isListening
               ? "var(--color-mic-active)"
-              : "var(--bg-button)", // Using CSS variable
-            color: isListening ? "white" : "var(--color-button-text)", // Using CSS variable
+              : "var(--bg-button)",
+            color: isListening ? "white" : "var(--color-button-text)",
             borderRadius: "10px",
             display: "flex",
             alignItems: "center",
@@ -234,7 +240,9 @@ export default function Home() {
         </button>
 
         <button
-          onClick={() => alert("location") || {}}
+          onClick={() => {
+            alert("Location feature not implemented yet!");
+          }}
           style={{
             padding: "10px 16px",
             background: "var(--bg-button)",
