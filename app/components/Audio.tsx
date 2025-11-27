@@ -3,6 +3,19 @@
 import { FiMic } from "react-icons/fi";
 import { useState } from "react";
 
+// 1. Declare the necessary interfaces on the global window object
+// This ensures webkitSpeechRecognition is recognized without 'any'.
+declare global {
+  interface Window {
+    webkitSpeechRecognition: typeof SpeechRecognition;
+    SpeechRecognition: typeof SpeechRecognition;
+  }
+}
+
+// NOTE: Since the SpeechRecognition interface is part of the standard DOM library
+// which is usually included in a modern TypeScript/Next.js setup, we typically
+// don't need to define the type itself, just the window properties.
+
 export default function VoiceInput({
   onResult,
   lang,
@@ -13,11 +26,11 @@ export default function VoiceInput({
   const [listening, setListening] = useState(false);
 
   function startListening() {
-    const SR =
-      (window as any).webkitSpeechRecognition ||
-      (window as any).SpeechRecognition;
+    // 2. Access the SpeechRecognition constructor safely
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    if (!SR) {
+    if (!SpeechRecognition) {
       alert(
         lang === "ja"
           ? "音声入力がサポートされていません。"
@@ -26,20 +39,32 @@ export default function VoiceInput({
       return;
     }
 
-    const recog = new SR();
+    // 3. Use the SpeechRecognition type directly
+    const recog = new SpeechRecognition();
     recog.lang = lang === "ja" ? "ja-JP" : "en-US";
     recog.interimResults = false;
 
     setListening(true);
     recog.start();
 
-    recog.onresult = (e: any) => {
+    // 4. Use the correct event type for onresult (SpeechRecognitionEvent)
+    recog.onresult = (e: SpeechRecognitionEvent) => {
       const text = e.results[0][0].transcript;
       onResult(text);
     };
 
-    recog.onerror = () => setListening(false);
-    recog.onend = () => setListening(false);
+    // 5. Use the correct, explicit event type for onerror
+    // Parameter 'e' implicitly has an 'any' type -> use SpeechRecognitionErrorEvent
+    recog.onerror = (e: SpeechRecognitionErrorEvent) => {
+      console.error(e);
+      setListening(false);
+    };
+
+    // 6. Use the correct, explicit event type for onend
+    // Parameter 'e' implicitly has an 'any' type -> use Event
+    recog.onend = (e: Event) => {
+      setListening(false);
+    };
   }
 
   return (

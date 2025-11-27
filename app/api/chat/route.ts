@@ -180,10 +180,21 @@ Sunset: ${weather.sunset}
       aiData.candidates?.[0]?.content?.parts?.[0]?.text ?? t.aiError;
 
     return NextResponse.json({ reply, weather, city });
-  } catch (err: any) {
+  } catch (err: unknown) { // FIX: Changed 'err: any' to 'err: unknown'
     console.error("API ERROR:", err);
+    
+    // Type narrowing to extract a message safely
+    let errorMessage = "Server Error";
+    if (err instanceof Error) {
+      errorMessage = err.message;
+    } else if (typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string') {
+        errorMessage = err.message;
+    } else if (typeof err === 'string') {
+        errorMessage = err;
+    }
+
     return NextResponse.json(
-      { error: err.message || "Server Error" },
+      { error: errorMessage },
       { status: 500 }
     );
   }
