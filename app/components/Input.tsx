@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, LegacyRef } from "react";
 import { FiSend } from "react-icons/fi";
-import { LegacyRef } from "react";
 
-// Define the expected type for the voice input component, explicitly allowing a ref
+// Define the expected type for the voice input component
 type VoiceButtonRef = LegacyRef<HTMLButtonElement> | undefined;
 
 interface ChatInputProps {
@@ -12,7 +11,7 @@ interface ChatInputProps {
   isLoading: boolean;
   placeholder: string;
   sendLabel: string;
-  voiceInput: React.ReactElement<{ ref?: VoiceButtonRef } & any>; // Updated type
+  voiceInput: React.ReactElement<{ ref?: VoiceButtonRef } & any>;
 }
 
 export function ChatInput({
@@ -34,10 +33,10 @@ export function ChatInput({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Global shortcut: Alt + A to toggle voice
       if (event.altKey && (event.key === "a" || event.code === "KeyA")) {
         event.preventDefault();
         event.stopPropagation();
-
         if (voiceButtonRef.current) {
           voiceButtonRef.current.click();
         }
@@ -50,7 +49,6 @@ export function ChatInput({
 
   const renderVoiceWithRef = () => {
     if (React.isValidElement(voiceInput)) {
-      // FIX APPLIED: Using a type assertion to inform TypeScript that the element accepts a ref prop
       return React.cloneElement(
         voiceInput as React.ReactElement<{ ref: typeof voiceButtonRef }>,
         {
@@ -64,14 +62,13 @@ export function ChatInput({
   return (
     <form
       onSubmit={handleSubmit}
-      style={{
-        padding: "16px 24px",
-        background: "var(--bg-input)",
-        borderTop: "1px solid var(--border-input)",
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-      }}
+      className="
+        flex items-center gap-2 p-3 
+        md:gap-3 md:p-4 
+        bg-[var(--bg-input)] 
+        border-t border-[var(--border-input)]
+        transition-colors duration-300
+      "
     >
       <input
         type="text"
@@ -85,40 +82,38 @@ export function ChatInput({
             handleSubmit(e);
           }
         }}
-        style={{
-          flexGrow: 1,
-          padding: "12px 16px",
-          borderRadius: "12px",
-          border: "1px solid var(--border-input)",
-          background: "var(--bg-main)",
-          color: "var(--color-text-chat)",
-          fontSize: "16px",
-        }}
+        className="
+          flex-1 p-3 rounded-xl 
+          border border-[var(--border-input)] 
+          bg-[var(--bg-primary)] 
+          text-[var(--color-text)] 
+          placeholder-[var(--color-subtext)]
+          focus:outline-none focus:ring-2 focus:ring-[var(--color-bubble-user)]/50
+          transition-all duration-200
+        "
       />
 
-      {renderVoiceWithRef()}
+      {/* Voice Input Component */}
+      <div className="flex-shrink-0">{renderVoiceWithRef()}</div>
 
       <button
         type="submit"
         disabled={!input.trim() || isLoading}
-        style={{
-          padding: "10px 16px",
-          borderRadius: "12px",
-          background: "var(--color-primary)",
-          color: "white",
-          border: "none",
-          cursor: !input.trim() || isLoading ? "not-allowed" : "pointer",
-          opacity: !input.trim() || isLoading ? 0.6 : 1,
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          fontSize: "14px",
-          fontWeight: 600,
-          transition: "opacity 0.2s",
-        }}
+        className={`
+          flex items-center justify-center gap-2 
+          p-3 rounded-xl font-semibold text-sm
+          bg-[var(--color-send-button)] text-white
+          transition-all duration-200
+          ${
+            !input.trim() || isLoading
+              ? "opacity-50 cursor-not-allowed"
+              : "hover:brightness-110 active:scale-95"
+          }
+        `}
       >
         <FiSend size={18} />
-        {sendLabel}
+        {/* Hide text on mobile, show on small screens and up */}
+        <span className="hidden sm:inline">{sendLabel}</span>
       </button>
     </form>
   );

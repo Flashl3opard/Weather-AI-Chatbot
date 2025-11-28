@@ -30,56 +30,55 @@ export default function Chat({
 
   return (
     <div
-      style={{
-        flex: 1,
-        padding: "16px",
-        overflowY: "auto",
-        background: "var(--bg-main)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "12px",
-      }}
+      className="
+        flex-1 overflow-y-auto px-3 sm:px-4 py-4 
+        flex flex-col gap-3
+      "
+      style={{ background: "var(--bg-main)" }}
     >
+      {/* Empty State */}
       {messages.length === 0 && (
-        <div
-          style={{
-            textAlign: "center",
-            marginTop: "20vh",
-            color: "var(--color-text-chat)",
-            padding: "20px",
-          }}
-        >
-          <h2 style={{ fontSize: "1.2rem" }}>{translations.startTitle}</h2>
-          <p style={{ opacity: 0.8, color: "var(--color-text-secondary)" }}>
+        <div className="text-center mt-[20vh] px-4">
+          <h2
+            className="text-lg sm:text-xl font-semibold"
+            style={{ color: "var(--color-text-chat)" }}
+          >
+            {translations.startTitle}
+          </h2>
+          <p
+            className="text-sm sm:text-base mt-2"
+            style={{ color: "var(--color-text-secondary)", opacity: 0.8 }}
+          >
             {translations.startSub}
           </p>
         </div>
       )}
 
+      {/* Messages */}
       {messages.map((m, i) => (
         <div
           key={i}
-          style={{
-            display: "flex",
-            justifyContent: m.role === "user" ? "flex-end" : "flex-start",
-          }}
+          className={`flex ${
+            m.role === "user" ? "justify-end" : "justify-start"
+          }`}
         >
           <div
+            className="
+              relative p-3 sm:p-4 rounded-xl text-sm sm:text-[15px] leading-[1.4]
+              max-w-[85%] sm:max-w-[70%] md:max-w-[60%]
+              break-words
+            "
             style={{
-              maxWidth: "85%",
-              padding: "12px 16px",
-              borderRadius: "14px",
-              fontSize: "15px",
-              lineHeight: "1.4",
               background:
                 m.role === "user"
                   ? "var(--color-primary)"
-                  : "var(--bg-bot-message, #fff)",
-              color: m.role === "user" ? "white" : "var(--color-text-chat)",
-              position: "relative",
+                  : "var(--bg-bot-message)",
+              color:
+                m.role === "user"
+                  ? "var(--color-bubble-user-text)"
+                  : "var(--color-text-chat)",
               border:
                 m.role === "bot" ? "1px solid var(--border-input)" : "none",
-              wordBreak: "break-word",
             }}
           >
             {m.text}
@@ -87,21 +86,13 @@ export default function Chat({
             {m.role === "bot" && (
               <button
                 onClick={() => onSpeak(m.text)}
-                style={{
-                  position: "absolute",
-                  bottom: 0,
-                  right: -36,
-                  height: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  border: "none",
-                  background: "transparent",
-                  cursor: "pointer",
-                  color: "var(--color-text-secondary)",
-                  padding: "0 4px",
-                  opacity: 0.8,
-                  transition: "opacity 0.2s",
-                }}
+                className="
+                  absolute bottom-0 right-[-30px]
+                  flex items-center justify-center
+                  p-1 cursor-pointer 
+                  opacity-70 hover:opacity-100 transition
+                "
+                style={{ color: "var(--color-text-secondary)" }}
               >
                 <FiVolume2 size={18} />
               </button>
@@ -110,20 +101,21 @@ export default function Chat({
         </div>
       ))}
 
+      {/* Loading */}
       {isLoading && (
         <div
+          className="
+            flex items-center gap-2 w-fit 
+            p-3 sm:p-4 rounded-xl text-sm sm:text-[15px]
+            border
+          "
           style={{
-            display: "flex",
-            alignItems: "center",
-            padding: "12px 16px",
-            width: "fit-content",
-            borderRadius: "14px",
-            background: "var(--bg-bot-message, #fff)",
-            border: "1px solid var(--border-input)",
+            background: "var(--bg-bot-message)",
+            borderColor: "var(--border-input)",
             color: "var(--color-text-secondary)",
           }}
         >
-          <FiLoader size={20} style={{ marginRight: "8px" }} />
+          <FiLoader size={20} className="animate-spin" />
           <span>{translations.startTitle}</span>
         </div>
       )}

@@ -84,7 +84,6 @@ const VoiceInput = forwardRef<HTMLButtonElement, VoiceInputProps>(
       }
 
       const recog = new SpeechRecognitionClass();
-
       recog.lang = lang === "ja" ? "ja-JP" : "en-US";
       recog.interimResults = false;
 
@@ -96,13 +95,8 @@ const VoiceInput = forwardRef<HTMLButtonElement, VoiceInputProps>(
         onResult(text);
       };
 
-      recog.onerror = () => {
-        setListening(false);
-      };
-
-      recog.onend = () => {
-        setListening(false);
-      };
+      recog.onerror = () => setListening(false);
+      recog.onend = () => setListening(false);
     }
 
     return (
@@ -110,37 +104,40 @@ const VoiceInput = forwardRef<HTMLButtonElement, VoiceInputProps>(
         ref={ref}
         onClick={startListening}
         disabled={listening}
+        className={`
+          flex items-center justify-center gap-2 
+          font-semibold transition-all select-none
+          rounded-xl flex-shrink-0
+          
+          /* Responsive padding */
+          px-3 py-2 text-sm
+          sm:px-4 sm:py-2.5 sm:text-base
+
+          /* Colors from theme */
+          ${listening ? "text-white" : ""}
+        `}
         style={{
-          padding: "10px 16px",
-          borderRadius: "12px",
           background: listening
             ? "var(--color-mic-active)"
             : "var(--bg-button)",
           color: listening ? "white" : "var(--color-button-text)",
-          fontSize: "14px",
-          fontWeight: 600,
-          border: "none",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
           cursor: listening ? "default" : "pointer",
-          transition: "background 0.2s",
-          flexShrink: 0,
         }}
       >
-        <FiMic size={18} />
-        {listening
-          ? lang === "ja"
-            ? "録音中..."
-            : "Listening…"
-          : lang === "ja"
-          ? "音声入力"
-          : "Voice"}
+        <FiMic size={18} className="shrink-0" />
+        <span>
+          {listening
+            ? lang === "ja"
+              ? "録音中..."
+              : "Listening…"
+            : lang === "ja"
+            ? "音声入力"
+            : "Voice"}
+        </span>
       </button>
     );
   }
 );
 
 VoiceInput.displayName = "VoiceInput";
-
 export default VoiceInput;
