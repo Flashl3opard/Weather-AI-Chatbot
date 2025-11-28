@@ -1,25 +1,37 @@
 @import "tailwindcss";
+
 :root {
+    font-family: var(--font-outfit), sans-serif;
+  --bg-primary: linear-gradient(135deg, #f0f9ff 0%, #ffe4e6 100%);
+  
 
-  --bg-primary: linear-gradient(135deg, #f9fafb, #eef2ff);
-  --bg-header: linear-gradient(135deg, #ffffff, #f1f5f9);
-  --bg-input: linear-gradient(135deg, #ffffff, #eef2ff);
-  --bg-button: linear-gradient(135deg, #e0e7ff, #c7d2fe);
-  --bg-bubble-bot: linear-gradient(135deg, #ffffff, #f8fafc);
+  --bg-header: linear-gradient(to right, rgba(255, 255, 255, 0.9), rgba(255, 241, 242, 0.9));
+
+  --bg-input: rgba(255, 255, 255, 0.8);
+  
+
+  --bg-button: linear-gradient(135deg, #e0e7ff, #fae8ff);
+  
+
+  --bg-bubble-bot: #ffffff;
 
 
-  --color-text: #0f172a;
+  --color-text: #334155;
   --color-subtext: #64748b;
-  --color-button-text: #1e293b;
-  --color-bubble-user: #4f46e5;
-  --color-bubble-user-text: #ffffff;
-  --color-mic-active: #9333ea;
-  --color-bot-speak: #2563eb;
-  --color-send-button: #10b981;
+  --color-button-text: #475569;
 
-  --border-primary: rgba(0, 0, 0, 0.08);
-  --border-bubble-bot: rgba(0, 0, 0, 0.08);
-  --border-input: rgba(0, 0, 0, 0.1);
+  
+  --color-bubble-user: #8b5cf6;    
+  --color-bubble-user-text: #ffffff;
+  
+  --color-mic-active: #d946ef;        
+  --color-bot-speak: #60a5fa;         
+  --color-send-button: #ec4899;      
+
+
+  --border-primary: rgba(255, 255, 255, 0.6);
+  --border-bubble-bot: rgba(236, 72, 153, 0.1); 
+  --border-input: rgba(255, 255, 255, 0.5);
 
   transition:
     background-color 0.3s ease,
@@ -27,6 +39,7 @@
     border-color 0.3s ease,
     background 0.3s ease;
 }
+
 .dark-mode { 
 
   --bg-primary: linear-gradient(135deg, #0f172a, #1e1b4b);
@@ -35,17 +48,14 @@
   --bg-button: linear-gradient(135deg, #3b3b4f, #4c1d95);
   --bg-bubble-bot: linear-gradient(135deg, #1e293b, #1e1b4b);
 
-
   --color-text: #f1f5f9;
   --color-subtext: #94a3b8;
   --color-button-text: #f8fafc;
-
 
   --color-bubble-user: #818cf8; 
   --color-mic-active: #c084fc;
   --color-bot-speak: #60a5fa;
   --color-send-button: #34d399;
-
 
   --border-primary: rgba(255, 255, 255, 0.08);
   --border-bubble-bot: rgba(255, 255, 255, 0.08);
@@ -53,7 +63,9 @@
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
-  background-color: var(--bg-primary); 
+  font-family: var(--font-outfit), sans-serif;
+  background-image: var(--bg-primary); 
+  background-attachment: fixed;        
   color: var(--color-text);
+  margin: 0;
 }
