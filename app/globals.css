@@ -1,57 +1,59 @@
 @import "tailwindcss";
-
 :root {
 
-  --bg-primary: #f7f7f7;
-  --bg-header: #ffffff;
-  --bg-input: #ffffff;
-  --bg-button: #E0E7FF;
-  --bg-bubble-bot: #ffffff;
-
-  --color-text: #1f2937;
-  --color-subtext: #6b7280;
-  --color-button-text: #1f2937;
-  --color-bubble-user: #4F46E5; 
-  --color-bubble-user-text: white;
-  --color-mic-active: #9333ea; 
-  --color-bot-speak: #2563eb; 
-  --color-send-button: #10B981; 
+  --bg-primary: linear-gradient(135deg, #f9fafb, #eef2ff);
+  --bg-header: linear-gradient(135deg, #ffffff, #f1f5f9);
+  --bg-input: linear-gradient(135deg, #ffffff, #eef2ff);
+  --bg-button: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  --bg-bubble-bot: linear-gradient(135deg, #ffffff, #f8fafc);
 
 
-  --border-primary: #e5e7eb;
-  --border-bubble-bot: #e5e7eb;
-  --border-input: #d1d5db;
+  --color-text: #0f172a;
+  --color-subtext: #64748b;
+  --color-button-text: #1e293b;
+  --color-bubble-user: #4f46e5;
+  --color-bubble-user-text: #ffffff;
+  --color-mic-active: #9333ea;
+  --color-bot-speak: #2563eb;
+  --color-send-button: #10b981;
 
+  --border-primary: rgba(0, 0, 0, 0.08);
+  --border-bubble-bot: rgba(0, 0, 0, 0.08);
+  --border-input: rgba(0, 0, 0, 0.1);
 
-  transition: 
-    background-color 0.3s ease, 
-    color 0.3s ease, 
-    border-color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    background 0.3s ease;
 }
-
-
 .dark-mode { 
 
-  --bg-primary: #111827;
-  --bg-header: #1F2937;
-  --bg-input: #1F2937;
-  --bg-button: #334155;
-  --bg-bubble-bot: #374151;
+  --bg-primary: linear-gradient(135deg, #0f172a, #1e1b4b);
+  --bg-header: linear-gradient(135deg, #1e293b, #312e81);
+  --bg-input: linear-gradient(135deg, #1e293b, #2e1065);
+  --bg-button: linear-gradient(135deg, #3b3b4f, #4c1d95);
+  --bg-bubble-bot: linear-gradient(135deg, #1e293b, #1e1b4b);
 
 
-  --color-text: #f3f4f6;
-  --color-subtext: #9ca3af;
-  --color-button-text: #e5e7eb;
-  --color-mic-active: #a78bfa;
-  --color-bot-speak: #93c5fd;
+  --color-text: #f1f5f9;
+  --color-subtext: #94a3b8;
+  --color-button-text: #f8fafc;
 
 
-  --border-primary: #374151;
-  --border-bubble-bot: #4b5563;
-  --border-input: #4b5563;
+  --color-bubble-user: #818cf8; 
+  --color-mic-active: #c084fc;
+  --color-bot-speak: #60a5fa;
+  --color-send-button: #34d399;
+
+
+  --border-primary: rgba(255, 255, 255, 0.08);
+  --border-bubble-bot: rgba(255, 255, 255, 0.08);
+  --border-input: rgba(255, 255, 255, 0.12);
 }
 
 body {
-
   font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-primary); 
+  color: var(--color-text);
 }
