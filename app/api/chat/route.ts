@@ -2,6 +2,18 @@ import { NextResponse } from "next/server";
 import { getWeather } from "../../../lib/weather";
 
 /* -------------------------------------------------------------
+   Model Configuration
+   Try these models in order until one works with your API key
+------------------------------------------------------------- */
+const GEMINI_MODELS = [
+  "gemini-2.5-flash",           // Latest stable
+  "gemini-2.0-flash-exp",       // Experimental 2.0
+  "gemini-1.5-flash-latest",    // Latest 1.5 (common)
+  "gemini-1.5-pro-latest",      // Pro version
+  "gemini-pro",                 // Legacy fallback
+];
+
+/* -------------------------------------------------------------
    1) GEOCODING (Open-Meteo)
 ------------------------------------------------------------- */
 async function getCoordinates(city: string) {
@@ -33,37 +45,47 @@ Rules:
 
 Message: "${text}"
 `;
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+  
+  // Try each model until one works
+  for (const model of GEMINI_MODELS) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        const result =
+          data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+
+        if (!result || result.toLowerCase() === "none" || result.length > 40)
+          return "";
+
+        console.log(`✅ Using model: ${model}`);
+        return result;
       }
-    );
-
-    const data = await res.json();
-    const result =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-
-    if (!result || result.toLowerCase() === "none" || result.length > 40)
-      return "";
-
-    return result;
-  } catch (e) {
-    console.error("❌ City extraction failed:", e);
-    return "";
+    } catch (e) {
+      console.log(`❌ Model ${model} failed, trying next...`);
+      continue;
+    }
   }
+
+  console.error("❌ All models failed for city extraction");
+  return "";
 }
 
 /* -------------------------------------------------------------
-   3) GEMINI REQUEST (with retry)
+   3) GEMINI REQUEST (with retry and model fallback)
 ------------------------------------------------------------- */
 async function askGemini(prompt: string): Promise<string> {
-  async function send() {
+  async function send(model: string) {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -73,7 +95,7 @@ async function askGemini(prompt: string): Promise<string> {
 
     if (!res.ok) {
       const errorText = await res.text();
-      console.error("🔥 Gemini API Error:", errorText);
+      console.error(`🔥 Gemini API Error (${model}):`, errorText);
       return "";
     }
 
@@ -83,10 +105,16 @@ async function askGemini(prompt: string): Promise<string> {
     );
   }
 
-  let reply = await send();
-  if (!reply || reply.length < 5) reply = await send();
+  // Try each model
+  for (const model of GEMINI_MODELS) {
+    const reply = await send(model);
+    if (reply && reply.length >= 5) {
+      console.log(`✅ Using model: ${model}`);
+      return reply;
+    }
+  }
 
-  return reply || "";
+  return "";
 }
 
 /* -------------------------------------------------------------
