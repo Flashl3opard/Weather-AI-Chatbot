@@ -1,8 +1,9 @@
 "use client";
 
-import { FiMic } from "react-icons/fi";
+import { FiMic, FiMicOff } from "react-icons/fi";
 import { useState, forwardRef } from "react";
 
+// --- Type Definitions (Kept for TypeScript safety) ---
 interface SpeechRecognitionErrorEvent extends Event {
   error: string;
   message: string;
@@ -105,31 +106,40 @@ const VoiceInput = forwardRef<HTMLButtonElement, VoiceInputProps>(
         onClick={startListening}
         disabled={listening}
         className={`
-          flex items-center justify-center gap-2 
-          font-semibold transition-all select-none
-          rounded-xl flex-shrink-0
+          relative flex items-center justify-center gap-2 
+          rounded-xl px-4 py-2.5 
+          text-sm font-semibold transition-all duration-300 ease-in-out
+          focus:outline-none focus:ring-2 focus:ring-offset-2
           
-          /* Responsive padding */
-          px-3 py-2 text-sm
-          sm:px-4 sm:py-2.5 sm:text-base
-
-          /* Colors from theme */
-          ${listening ? "text-white" : ""}
+          /* Conditional Styling based on Listening State */
+          ${
+            listening
+              ? "bg-rose-500 text-white shadow-lg shadow-rose-500/40 ring-rose-400 ring-offset-white dark:ring-offset-slate-900 cursor-default"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:shadow-md dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          }
         `}
-        style={{
-          background: listening
-            ? "var(--color-mic-active)"
-            : "var(--bg-button)",
-          color: listening ? "white" : "var(--color-button-text)",
-          cursor: listening ? "default" : "pointer",
-        }}
       >
-        <FiMic size={18} className="shrink-0" />
+        {/* Animated Ping Effect when Listening */}
+        {listening && (
+          <span className="absolute -right-1 -top-1 flex h-3 w-3">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75"></span>
+            <span className="relative inline-flex h-3 w-3 rounded-full bg-rose-500"></span>
+          </span>
+        )}
+
+        <div
+          className={`transition-transform duration-300 ${
+            listening ? "scale-110" : "scale-100"
+          }`}
+        >
+          {listening ? <FiMicOff size={18} /> : <FiMic size={18} />}
+        </div>
+
         <span>
           {listening
             ? lang === "ja"
               ? "録音中..."
-              : "Listening…"
+              : "Listening..."
             : lang === "ja"
             ? "音声入力"
             : "Voice"}

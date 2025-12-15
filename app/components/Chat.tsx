@@ -1,6 +1,6 @@
 "use client";
 
-import { FiLoader, FiVolume2 } from "react-icons/fi";
+import { FiVolume2, FiCpu, FiUser, FiZap } from "react-icons/fi";
 import { useRef, useEffect } from "react";
 
 export type ChatMessage = {
@@ -29,98 +29,95 @@ export default function Chat({
   }, [messages, isLoading]);
 
   return (
-    <div
-      className="
-        flex-1 overflow-y-auto px-3 sm:px-4 py-4 
-        flex flex-col gap-3
-      "
-      style={{ background: "var(--bg-main)" }}
-    >
-      {/* Empty State */}
-      {messages.length === 0 && (
-        <div className="text-center mt-[20vh] px-4">
-          <h2
-            className="text-lg sm:text-xl font-semibold"
-            style={{ color: "var(--color-text-chat)" }}
-          >
-            {translations.startTitle}
+    <div className="relative flex-1 overflow-y-auto px-4 py-6 sm:px-6">
+      {/* Ambient Gradient */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-blue-500/5 to-transparent" />
+
+      {/* EMPTY / HERO STATE */}
+      {messages.length === 0 && !isLoading && (
+        <div className="flex h-full flex-col items-center justify-center text-center animate-[fadeIn_0.6s_ease-out]">
+          <div className="relative mb-6">
+            <div className="absolute inset-0 animate-ping rounded-full bg-blue-400/30" />
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-[0_0_40px_rgba(99,102,241,0.6)]">
+              <FiZap className="h-8 w-8 text-white" />
+            </div>
+          </div>
+          <h2 className="text-xl font-bold tracking-tight">
+            {translations.startTitle || "AI Ready"}
           </h2>
-          <p
-            className="text-sm sm:text-base mt-2"
-            style={{ color: "var(--color-text-secondary)", opacity: 0.8 }}
-          >
-            {translations.startSub}
+          <p className="mt-2 max-w-sm text-sm opacity-60">
+            {translations.startSub ||
+              "Ask anything. Weather. Travel. Decisions."}
           </p>
         </div>
       )}
 
-      {/* Messages */}
-      {messages.map((m, i) => (
-        <div
-          key={i}
-          className={`flex ${
-            m.role === "user" ? "justify-end" : "justify-start"
-          }`}
-        >
+      {/* MESSAGES */}
+      <div className="relative z-10 flex flex-col gap-8">
+        {messages.map((m, i) => (
           <div
-            className="
-              relative p-3 sm:p-4 rounded-xl text-sm sm:text-[15px] leading-[1.4]
-              max-w-[85%] sm:max-w-[70%] md:max-w-[60%]
-              break-words
-            "
-            style={{
-              background:
-                m.role === "user"
-                  ? "var(--color-primary)"
-                  : "var(--bg-bot-message)",
-              color:
-                m.role === "user"
-                  ? "var(--color-bubble-user-text)"
-                  : "var(--color-text-chat)",
-              border:
-                m.role === "bot" ? "1px solid var(--border-input)" : "none",
-            }}
+            key={i}
+            className={`flex w-full items-end gap-3 ${
+              m.role === "user" ? "justify-end" : "justify-start"
+            }`}
           >
-            {m.text}
-
+            {/* AVATAR */}
             {m.role === "bot" && (
-              <button
-                onClick={() => onSpeak(m.text)}
-                className="
-                  absolute bottom-0 right-[-30px]
-                  flex items-center justify-center
-                  p-1 cursor-pointer 
-                  opacity-70 hover:opacity-100 transition
-                "
-                style={{ color: "var(--color-text-secondary)" }}
-              >
-                <FiVolume2 size={18} />
-              </button>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md">
+                <FiCpu size={14} />
+              </div>
+            )}
+
+            {/* BUBBLE */}
+            <div
+              className={`group relative max-w-[85%] rounded-3xl px-6 py-4 text-[15px] leading-relaxed transition-all sm:max-w-[75%] md:max-w-[65%]
+                ${
+                  m.role === "user"
+                    ? "rounded-br-md bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-500 text-white shadow-[0_0_25px_rgba(56,189,248,0.45)]"
+                    : "rounded-bl-md bg-white/70 backdrop-blur-xl border border-white/40 text-slate-800 shadow-lg dark:bg-slate-900/70 dark:border-white/10 dark:text-slate-100"
+                }
+              `}
+            >
+              <div className="whitespace-pre-wrap">{m.text}</div>
+
+              {/* BOT ACTIONS */}
+              {m.role === "bot" && (
+                <button
+                  onClick={() => onSpeak(m.text)}
+                  className="absolute -right-10 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/70 text-slate-500 opacity-0 backdrop-blur-md transition-all hover:scale-110 hover:text-blue-600 group-hover:opacity-100 dark:bg-slate-800/70 dark:text-slate-400 dark:hover:text-blue-400"
+                  title="Read aloud"
+                >
+                  <FiVolume2 size={15} />
+                </button>
+              )}
+            </div>
+
+            {/* USER AVATAR */}
+            {m.role === "user" && (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500 text-white shadow-md">
+                <FiUser size={14} />
+              </div>
             )}
           </div>
-        </div>
-      ))}
+        ))}
 
-      {/* Loading */}
-      {isLoading && (
-        <div
-          className="
-            flex items-center gap-2 w-fit 
-            p-3 sm:p-4 rounded-xl text-sm sm:text-[15px]
-            border
-          "
-          style={{
-            background: "var(--bg-bot-message)",
-            borderColor: "var(--border-input)",
-            color: "var(--color-text-secondary)",
-          }}
-        >
-          <FiLoader size={20} className="animate-spin" />
-          <span>{translations.startTitle}</span>
-        </div>
-      )}
+        {/* LOADING / THINKING */}
+        {isLoading && (
+          <div className="flex w-full items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white animate-pulse">
+              <FiCpu size={14} />
+            </div>
+            <div className="flex items-center gap-2 rounded-3xl rounded-bl-md bg-white/70 px-6 py-4 backdrop-blur-xl border border-white/40 dark:bg-slate-900/70 dark:border-white/10">
+              <span className="h-2 w-2 rounded-full bg-blue-500 animate-bounce [animation-delay:-0.3s]" />
+              <span className="h-2 w-2 rounded-full bg-blue-500 animate-bounce [animation-delay:-0.15s]" />
+              <span className="h-2 w-2 rounded-full bg-blue-500 animate-bounce" />
+              <span className="ml-2 text-xs opacity-60">Thinking…</span>
+            </div>
+          </div>
+        )}
+      </div>
 
-      <div ref={endRef} />
+      <div ref={endRef} className="h-6" />
     </div>
   );
 }

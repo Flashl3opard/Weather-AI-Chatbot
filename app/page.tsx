@@ -1,89 +1,138 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FiSun, FiMoon, FiGlobe } from "react-icons/fi";
+import {
+  FiSun,
+  FiMoon,
+  FiGlobe,
+  FiMapPin,
+  FiChevronDown,
+  FiCpu,
+  FiActivity,
+} from "react-icons/fi";
+
 import VoiceInput from "./components/Audio";
 import Chat, { ChatMessage } from "./components/Chat";
 import { ChatInput } from "./components/Input";
+
+/* ------------------------------------------------------------------ */
+/* THEME CONFIG                                                        */
+/* ------------------------------------------------------------------ */
+
+const themeConfig: Record<
+  string,
+  { bg: string; accent: string; icon: string }
+> = {
+  general: {
+    bg: "from-blue-600/20 via-slate-900 to-cyan-900",
+    accent: "text-cyan-400",
+    icon: "🌍",
+  },
+  travel: {
+    bg: "from-sky-500/20 via-indigo-950 to-emerald-900",
+    accent: "text-sky-400",
+    icon: "✈️",
+  },
+  fashion: {
+    bg: "from-fuchsia-600/20 via-slate-900 to-purple-900",
+    accent: "text-fuchsia-400",
+    icon: "👗",
+  },
+  sports: {
+    bg: "from-orange-500/20 via-slate-900 to-red-900",
+    accent: "text-orange-400",
+    icon: "⚽",
+  },
+  music: {
+    bg: "from-violet-600/20 via-slate-900 to-indigo-900",
+    accent: "text-violet-400",
+    icon: "🎵",
+  },
+  agriculture: {
+    bg: "from-lime-500/20 via-slate-900 to-green-900",
+    accent: "text-lime-400",
+    icon: "🌾",
+  },
+  outings: {
+    bg: "from-yellow-500/20 via-slate-900 to-amber-900",
+    accent: "text-yellow-400",
+    icon: "🏞️",
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/* TRANSLATIONS                                                        */
+/* ------------------------------------------------------------------ */
+
+const translations = {
+  en: {
+    appTitle: "AtmosAI",
+    subtitle: "NEURAL LINK ESTABLISHED",
+
+    /* ✅ REQUIRED BY <Chat /> */
+    startTitle: "AI Core Online",
+    startSub: "Awaiting commands. Weather. Travel. Decisions.",
+
+    locationUpdated: "Coordinates Acquired",
+    geoNotSupported: "Geo-Sensors Offline",
+    geoFailedPrefix: "Triangulation Failed: ",
+    locationBtn: "GPS SCAN",
+    inputPlaceholder: "Awaiting Command...",
+    sendLabel: "EXECUTE",
+    locationPlaceholder: "Enter Coordinates...",
+  },
+
+  ja: {
+    appTitle: "AtmosAI",
+    subtitle: "ニューラルリンク接続完了",
+
+    /* ✅ REQUIRED BY <Chat /> */
+    startTitle: "AI起動完了",
+    startSub: "天気・旅行・判断を指示してください",
+
+    locationUpdated: "座標取得完了",
+    geoNotSupported: "ジオセンサーオフライン",
+    geoFailedPrefix: "三角測量失敗: ",
+    locationBtn: "GPSスキャン",
+    inputPlaceholder: "コマンド待機中...",
+    sendLabel: "実行",
+    locationPlaceholder: "座標 / 都市を入力...",
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/* COMPONENT                                                           */
+/* ------------------------------------------------------------------ */
 
 export default function Home() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
+  const [themeMode, setThemeMode] = useState<"light" | "dark">("dark");
+  const [theme, setTheme] = useState("general");
+  const [lang, setLang] = useState<"en" | "ja">("en");
 
   const [lat, setLat] = useState<number | null>(35.6895);
   const [lon, setLon] = useState<number | null>(139.6917);
-
   const [locationInput, setLocationInput] = useState("Tokyo");
   const [locationName, setLocationName] = useState("Tokyo");
 
-  const [theme, setTheme] = useState("general");
+  const currentTheme = themeConfig[theme] ?? themeConfig.general;
+  const t = translations[lang];
 
-  const [lang, setLang] = useState<"en" | "ja">("en");
-
-  const themeIcons: Record<string, string> = {
-    general: "🌍",
-    travel: "✈",
-    fashion: "👗",
-    sports: "⚽",
-    music: "🎵",
-    agriculture: "🌾",
-    outings: "🏞",
-  };
-
-  const translations = {
-    en: {
-      appTitle: "AtmosAI",
-      locationUpdated: "Location updated!",
-      geoNotSupported: "Geolocation not supported.",
-      geoFailedPrefix: "Failed to get location: ",
-      locationBtn: "📍 Use Current Location",
-      startTitle: "",
-      startSub: "Ask me about weather anywhere — or use your current location.",
-      inputPlaceholder: "Type your question…",
-      sendLabel: "Send",
-      locationPromptBot: "Geolocation not supported. Please provide a city.",
-      locationErrorBotPrefix: "Failed to get location: ",
-      locationPlaceholder: "Enter City or Region",
-    },
-
-    ja: {
-      appTitle: "天気アシスタント",
-      locationUpdated: "位置情報を更新しました！",
-      geoNotSupported: "位置情報がサポートされていません。",
-      geoFailedPrefix: "位置情報の取得に失敗しました: ",
-      locationBtn: "📍 現在地を使用",
-      startTitle: "会話を始めましょう",
-      startSub: "都市の天気について聞くか現在地を使用してください。",
-      inputPlaceholder: "質問を書いてください…",
-      sendLabel: "送信",
-      locationPromptBot:
-        "位置情報がサポートされていません。都市名を指定してください。",
-      locationErrorBotPrefix: "位置情報の取得に失敗しました: ",
-      locationPlaceholder: "都市または地域を入力",
-    },
-  };
+  /* ------------------------------------------------------------------ */
+  /* EFFECTS                                                            */
+  /* ------------------------------------------------------------------ */
 
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.remove("light-mode", "dark-mode");
-    root.classList.add(themeMode === "dark" ? "dark-mode" : "light-mode");
-
-    root.style.setProperty("--bg-main", "var(--bg-primary)");
-    root.style.setProperty("--bg-input", "var(--bg-input)");
-    root.style.setProperty("--border-input", "var(--border-input)");
-    root.style.setProperty("--color-text-chat", "var(--color-text)");
-    root.style.setProperty("--color-text-header", "var(--color-text)");
-    root.style.setProperty("--color-text-secondary", "var(--color-subtext)");
-
-    root.style.setProperty("--bg-button", "var(--bg-button)");
-    root.style.setProperty("--color-button-text", "var(--color-button-text)");
-    root.style.setProperty("--color-primary", "var(--color-bubble-user)");
-    root.style.setProperty("--bg-user-bubble", "var(--color-bubble-user)");
-    root.style.setProperty("--bg-bot-message", "var(--bg-bubble-bot)");
-    root.style.setProperty("--bg-mic-active", "var(--color-mic-active)");
+    if (themeMode === "dark") root.classList.add("dark");
+    else root.classList.remove("dark");
   }, [themeMode]);
+
+  /* ------------------------------------------------------------------ */
+  /* HELPERS                                                            */
+  /* ------------------------------------------------------------------ */
 
   function speak(text: string) {
     if (!text) return;
@@ -95,43 +144,29 @@ export default function Home() {
 
   function getLocation() {
     if (!navigator.geolocation) {
-      alert(translations[lang].geoNotSupported);
+      alert(t.geoNotSupported);
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const newLat = pos.coords.latitude;
-        const newLon = pos.coords.longitude;
-
-        setLat(newLat);
-        setLon(newLon);
-
+        setLat(pos.coords.latitude);
+        setLon(pos.coords.longitude);
         setLocationName(
-          lang === "ja" ? "現在地 (GPS)" : "Current Location (GPS)"
+          lang === "ja" ? "現在地 (GPS)" : "Current Sector (GPS)"
         );
-
-        alert(translations[lang].locationUpdated);
+        alert(t.locationUpdated);
       },
-      (err) => alert(translations[lang].geoFailedPrefix + err.message),
-      { timeout: 8000, enableHighAccuracy: true }
+      (err) => alert(t.geoFailedPrefix + err.message),
+      { enableHighAccuracy: true, timeout: 8000 }
     );
   }
 
   function handleLocationChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const newLoc = e.target.value;
-    setLocationInput(newLoc);
-    setLocationName(newLoc);
-
+    setLocationInput(e.target.value);
+    setLocationName(e.target.value);
     setLat(null);
     setLon(null);
-  }
-
-  function buildLocationPayload() {
-    if (lat !== null && lon !== null) {
-      return { lat, lon };
-    }
-    return { location: locationInput };
   }
 
   async function sendMessage(input: string) {
@@ -140,217 +175,151 @@ export default function Home() {
     setMessages((prev) => [...prev, { role: "user", text: input }]);
     setIsLoading(true);
 
-    const payload = {
-      message: input,
-      theme,
-      lang,
-      ...buildLocationPayload(),
-    };
-
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          message: input,
+          theme,
+          lang,
+          ...(lat && lon ? { lat, lon } : { location: locationInput }),
+        }),
       });
 
       const data = await res.json();
 
-      const reply = data.reply ?? (lang === "ja" ? "応答なし" : "No response.");
-
-      setMessages((prev) => [...prev, { role: "bot", text: reply }]);
-    } catch (err) {
-      console.error(err);
       setMessages((prev) => [
         ...prev,
-        {
-          role: "bot",
-          text:
-            lang === "ja"
-              ? "❌ サーバーエラーが発生しました。"
-              : "❌ Server error occurred.",
-        },
+        { role: "bot", text: data.reply ?? "No response." },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "bot", text: "❌ CRITICAL ERROR: UPLINK FAILED" },
       ]);
     }
 
     setIsLoading(false);
   }
 
-  const toggleTheme = () =>
-    setThemeMode((prev) => (prev === "light" ? "dark" : "light"));
+  /* ------------------------------------------------------------------ */
+  /* RENDER                                                             */
+  /* ------------------------------------------------------------------ */
 
   return (
-    <div
-      style={{
-        height: "100vh",
-        width: "100vw",
-        background: "var(--bg-main)",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        fontFamily: "'Inter', sans-serif",
-      }}
-    >
-      {/* HEADER */}
-      <div style={{ padding: "16px 24px", color: "var(--color-text-header)" }}>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: "28px",
-            fontWeight: 700,
-            display: "flex",
-            gap: "12px",
-            alignItems: "center",
-          }}
-        >
-          {translations[lang].appTitle}
-        </h1>
-
-        <p
-          style={{
-            opacity: 0.9,
-            marginTop: "4px",
-            fontSize: "14px",
-            color: "var(--color-text-secondary)",
-          }}
-        >
-          📍 {locationName} • {themeIcons[theme]}{" "}
-          {theme.charAt(0).toUpperCase() + theme.slice(1)}
-        </p>
-      </div>
-
-      {/* CONTROLS */}
+    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-slate-950 text-slate-100">
+      {/* Ambient Background */}
       <div
-        style={{
-          padding: "16px 24px",
-          background: "var(--bg-input)",
-          borderBottom: "1px solid var(--border-input)",
-          display: "flex",
-          gap: "12px",
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
-        {/* THEME TOGGLE */}
-        <button
-          onClick={toggleTheme}
-          style={{
-            padding: "10px",
-            borderRadius: "12px",
-            background: "var(--bg-button)",
-            color: "var(--color-button-text)",
-            border: "none",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {themeMode === "light" ? <FiMoon size={20} /> : <FiSun size={20} />}
-        </button>
+        className={`absolute inset-0 bg-gradient-to-br ${currentTheme.bg} opacity-60 transition-all duration-1000`}
+      />
 
-        {/* LOCATION INPUT */}
-        <div
-          style={{
-            display: "flex",
-            gap: "8px",
-            flexGrow: 1,
-            maxWidth: "400px",
-            minWidth: "200px",
-          }}
-        >
-          <input
-            type="text"
-            placeholder={translations[lang].locationPlaceholder}
-            value={locationInput}
-            onChange={handleLocationChange}
-            style={{
-              flexGrow: 1,
-              padding: "10px 12px",
-              borderRadius: "12px",
-              border: "1px solid var(--border-input)",
-              background: "var(--bg-main)",
-              color: "var(--color-text-chat)",
-              minWidth: 0,
-            }}
-          />
+      <div className="z-10 mx-auto flex h-full w-full max-w-6xl flex-col overflow-hidden bg-white/5 backdrop-blur-2xl ring-1 ring-white/10 sm:my-6 sm:h-[95vh] sm:rounded-3xl">
+        {/* HEADER */}
+        <header className="flex items-center justify-between border-b border-white/10 bg-black/20 px-6 py-4">
+          <div className="flex items-center gap-4">
+            <div
+              className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 ${currentTheme.accent}`}
+            >
+              <FiCpu size={24} />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black tracking-tight">
+                {t.appTitle}
+              </h1>
+              <p className="text-[10px] font-bold tracking-widest text-slate-400">
+                {t.subtitle}
+              </p>
+            </div>
+          </div>
 
-          <button
-            onClick={getLocation}
-            style={{
-              padding: "10px 16px",
-              borderRadius: "12px",
-              background: "var(--bg-user-bubble)",
-              color: "var(--color-bubble-user-text)",
-              border: "none",
-              cursor: "pointer",
-              flexShrink: 0,
-              fontSize: "14px",
-            }}
-          >
-            {translations[lang].locationBtn}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() =>
+                setThemeMode((p) => (p === "light" ? "dark" : "light"))
+              }
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 hover:bg-white/10"
+            >
+              {themeMode === "dark" ? (
+                <FiSun className="text-yellow-300" />
+              ) : (
+                <FiMoon />
+              )}
+            </button>
+
+            <button
+              onClick={() => setLang((p) => (p === "en" ? "ja" : "en"))}
+              className="flex h-10 items-center gap-2 rounded-xl bg-white/5 px-4 text-xs font-bold tracking-widest"
+            >
+              <FiGlobe /> {lang === "en" ? "JPN" : "ENG"}
+            </button>
+          </div>
+        </header>
+
+        {/* CONTROLS */}
+        <div className="flex flex-wrap items-center gap-4 border-b border-white/10 bg-black/10 px-6 py-4">
+          <div className="flex flex-1 items-center rounded-xl border border-white/10 bg-black/20">
+            <div className={`pl-4 ${currentTheme.accent}`}>
+              <FiMapPin />
+            </div>
+            <input
+              value={locationInput}
+              onChange={handleLocationChange}
+              placeholder={t.locationPlaceholder}
+              className="w-full bg-transparent px-3 py-3 text-sm outline-none"
+            />
+            <button
+              onClick={getLocation}
+              className="mr-2 rounded-lg bg-white/5 px-3 py-1.5 text-[10px] font-bold"
+            >
+              {t.locationBtn}
+            </button>
+          </div>
+
+          <div className="relative min-w-[180px]">
+            <select
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+              className="w-full appearance-none rounded-xl border border-white/10 bg-black/20 px-4 py-3 pr-10 text-sm font-bold uppercase"
+            >
+              {Object.keys(themeConfig).map((key) => (
+                <option key={key} value={key}>
+                  {themeConfig[key].icon} {key}
+                </option>
+              ))}
+            </select>
+            <FiChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2" />
+          </div>
+
+          <div className="hidden items-center gap-2 text-xs uppercase text-slate-500 md:flex">
+            <FiActivity /> Sector: {locationName}
+          </div>
         </div>
 
-        {/* THEME SELECT */}
-        <select
-          value={theme}
-          onChange={(e) => setTheme(e.target.value)}
-          style={{
-            padding: "10px 16px",
-            borderRadius: "12px",
-            border: "1px solid var(--border-input)",
-            background: "var(--bg-main)",
-            color: "var(--color-text-chat)",
-            minWidth: "150px",
-            flexShrink: 0,
-          }}
-        >
-          {Object.keys(themeIcons).map((key) => (
-            <option key={key} value={key}>
-              {themeIcons[key]} {key.charAt(0).toUpperCase() + key.slice(1)}
-            </option>
-          ))}
-        </select>
+        {/* CHAT */}
+        <main className="flex-1 overflow-hidden">
+          <Chat
+            messages={messages}
+            isLoading={isLoading}
+            onSpeak={speak}
+            translations={{
+              startTitle: t.startTitle,
+              startSub: t.startSub,
+            }}
+          />
+        </main>
 
-        {/* LANGUAGE TOGGLE */}
-        <button
-          onClick={() => setLang((prev) => (prev === "en" ? "ja" : "en"))}
-          style={{
-            padding: "10px 12px",
-            borderRadius: "12px",
-            background: "var(--bg-button)",
-            color: "var(--color-button-text)",
-            border: "none",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-            fontSize: "14px",
-            flexShrink: 0,
-          }}
-        >
-          <FiGlobe size={20} />
-          {lang === "en" ? "日本語" : "EN"}
-        </button>
+        {/* INPUT */}
+        <footer className="border-t border-white/10 bg-black/20 backdrop-blur-xl">
+          <ChatInput
+            onSend={sendMessage}
+            isLoading={isLoading}
+            placeholder={t.inputPlaceholder}
+            sendLabel={t.sendLabel}
+            voiceInput={<VoiceInput lang={lang} onResult={sendMessage} />}
+          />
+        </footer>
       </div>
-
-      {/* CHAT WINDOW */}
-      <Chat
-        messages={messages}
-        isLoading={isLoading}
-        onSpeak={speak}
-        translations={translations[lang]}
-      />
-
-      {/* CHAT INPUT with VoiceInput component passed as a prop */}
-      <ChatInput
-        onSend={sendMessage}
-        isLoading={isLoading}
-        placeholder={translations[lang].inputPlaceholder}
-        sendLabel={translations[lang].sendLabel}
-        voiceInput={<VoiceInput lang={lang} onResult={sendMessage} />}
-      />
     </div>
   );
 }
